@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import "./globals.css";
 import { SharedLayout } from "@/components/SharedLayout";
 import { UserProvider } from "@/context/UserContext";
+import { RouteGuard } from "@/components/RouteGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,7 +22,9 @@ export default function RootLayout({
     <html lang="en" className={inter.className}>
       <body>
         <UserProvider>
-          <SharedLayout>{children}</SharedLayout>
+          <RouteGuard>
+            <SharedLayout>{children}</SharedLayout>
+          </RouteGuard>
         </UserProvider>
       </body>
     </html>

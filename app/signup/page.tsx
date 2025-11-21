@@ -1,19 +1,19 @@
 "use client";
 
 import { getAuthErrorMessage } from "@/lib/authErrors";
-import { signInWithEmail } from "@/lib/auth";
+import { signUpWithEmail } from "@/lib/auth";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSignIn = async (event: FormEvent<HTMLFormElement>) => {
+  const handleSignUp = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
 
@@ -32,7 +32,7 @@ export default function SignInPage() {
     setIsSubmitting(true);
 
     try {
-      await signInWithEmail(trimmedEmail, password);
+      await signUpWithEmail(trimmedEmail, password);
       router.push("/dashboard");
     } catch (err) {
       setError(getAuthErrorMessage(err));
@@ -44,12 +44,10 @@ export default function SignInPage() {
   return (
     <section className="mx-auto max-w-md space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
       <div className="space-y-1 text-center">
-        <h2 className="text-2xl font-semibold text-slate-900">Sign In</h2>
-        <p className="text-sm text-slate-600">
-          Use your email and password to access the app.
-        </p>
+        <h2 className="text-2xl font-semibold text-slate-900">Create an account</h2>
+        <p className="text-sm text-slate-600">Join to start your reflections.</p>
       </div>
-      <form className="space-y-4" onSubmit={handleSignIn}>
+      <form className="space-y-4" onSubmit={handleSignUp}>
         <div className="space-y-2 text-left">
           <label htmlFor="email" className="block text-sm font-medium text-slate-700">
             Email
@@ -86,13 +84,13 @@ export default function SignInPage() {
           disabled={isSubmitting}
           className="w-full rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:opacity-70"
         >
-          {isSubmitting ? "Signing In..." : "Sign In"}
+          {isSubmitting ? "Creating Account..." : "Create Account"}
         </button>
       </form>
       <p className="text-center text-sm text-slate-600">
-        Don&apos;t have an account?{" "}
-        <Link href="/signup" className="font-semibold text-slate-900 underline">
-          Sign up
+        Already have an account?{" "}
+        <Link href="/signin" className="font-semibold text-slate-900 underline">
+          Sign in
         </Link>
       </p>
     </section>
