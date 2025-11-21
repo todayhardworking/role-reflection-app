@@ -1,6 +1,7 @@
 "use client";
 
 import { UserContext } from "@/context/UserContext";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useContext, useEffect, useState } from "react";
 import { loadReflections, type Reflection } from "@/lib/reflections";
@@ -74,7 +75,15 @@ export default function DashboardPage() {
       <div className="space-y-3">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-slate-900">Your reflections</h3>
-          {isLoadingReflections && <span className="text-sm text-slate-500">Loading...</span>}
+          <div className="flex items-center gap-3">
+            <Link
+              href="/roles"
+              className="rounded-md border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+            >
+              Manage Roles
+            </Link>
+            {isLoadingReflections && <span className="text-sm text-slate-500">Loading...</span>}
+          </div>
         </div>
         {reflections.length === 0 && !isLoadingReflections ? (
           <p className="rounded-md border border-dashed border-slate-200 bg-slate-50 p-4 text-slate-600">
