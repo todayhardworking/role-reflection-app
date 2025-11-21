@@ -1,6 +1,7 @@
 "use client";
 
 import { useUser } from "@/context/UserContext";
+import { saveReflection } from "@/lib/reflections";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -8,12 +9,36 @@ export default function ReflectionPage() {
   const { currentUser, loading } = useUser();
   const router = useRouter();
   const [reflection, setReflection] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !currentUser) {
       router.replace("/signin");
     }
   }, [loading, currentUser, router]);
+
+  const handleSaveReflection = async () => {
+    if (!currentUser || !reflection.trim()) {
+      return;
+    }
+
+    setSaving(true);
+    setMessage(null);
+    setError(null);
+
+    try {
+      await saveReflection(reflection.trim(), currentUser.uid);
+      setMessage("Your reflection was saved successfully.");
+      setReflection("");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to save reflection. Please try again.");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   if (loading || !currentUser) {
     return <p className="text-center text-slate-600">Loading your reflection page...</p>;
@@ -39,10 +64,19 @@ export default function ReflectionPage() {
           placeholder="Write a quick note about your role, wins, or opportunities..."
         />
       </div>
-      <p className="text-sm text-slate-600">
-        This simple text area is a placeholder for your reflections. In a full app, these notes could be saved
-        to Firestore for later review.
-      </p>
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleSaveReflection}
+          disabled={saving || !reflection.trim()}
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        >
+          {saving ? "Saving..." : "Save Reflection"}
+        </button>
+        {message && <span className="text-sm text-green-600">{message}</span>}
+        {error && <span className="text-sm text-red-600">{error}</span>}
+      </div>
+      <p className="text-sm text-slate-600">Your reflections are saved securely to revisit whenever you need them.</p>
     </section>
   );
 }
