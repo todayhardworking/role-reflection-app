@@ -1,11 +1,11 @@
 "use client";
 
-import { useAuth } from "@/components/AuthProvider";
+import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function ReflectionPage() {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading } = useUser();
   const router = useRouter();
   const [reflection, setReflection] = useState("");
 
