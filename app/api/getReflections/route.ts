@@ -18,10 +18,20 @@ export async function GET(request: NextRequest) {
       .orderBy("createdAt", "desc")
       .get();
 
-    const reflections = snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...(doc.data() as { text: string; createdAt: string; uid: string }),
-    }));
+    const reflections = snapshot.docs.map((doc) => {
+      const data = doc.data() as {
+        text: string;
+        createdAt?: FirebaseFirestore.Timestamp;
+        uid: string;
+      };
+
+      return {
+        id: doc.id,
+        text: data.text,
+        uid: data.uid,
+        createdAt: data.createdAt?.toDate().toISOString() ?? null,
+      };
+    });
 
     return NextResponse.json({ reflections });
   } catch (error) {
