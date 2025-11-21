@@ -1,26 +1,34 @@
 "use client";
 
-import { useUser } from "@/context/UserContext";
+import { UserContext } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { loadReflections, type Reflection } from "@/lib/reflections";
 
 export default function DashboardPage() {
-  const { currentUser, loading, signOut } = useUser();
+  const userContext = useContext(UserContext);
   const router = useRouter();
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [isLoadingReflections, setIsLoadingReflections] = useState(true);
 
   useEffect(() => {
+    if (!userContext) return;
+
+    const { loading, currentUser } = userContext;
+
     if (!loading && !currentUser) {
       router.replace("/signin");
     }
-  }, [loading, currentUser, router]);
+  }, [userContext, router]);
 
   useEffect(() => {
-    const fetchReflections = async () => {
-      if (!currentUser) return;
+    if (!userContext) return;
 
+    const { loading, currentUser } = userContext;
+
+    if (loading || !currentUser) return;
+
+    const fetchReflections = async () => {
       try {
         setIsLoadingReflections(true);
         const data = await loadReflections(currentUser.uid);
@@ -33,7 +41,13 @@ export default function DashboardPage() {
     };
 
     fetchReflections();
-  }, [currentUser]);
+  }, [userContext]);
+
+  if (!userContext) {
+    return <p className="text-center text-slate-600">Loading your dashboard...</p>;
+  }
+
+  const { currentUser, loading, signOut } = userContext;
 
   if (loading || !currentUser) {
     return <p className="text-center text-slate-600">Loading your dashboard...</p>;
