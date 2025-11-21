@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { SharedLayout } from "@/components/SharedLayout";
+import { AuthProvider } from "@/components/AuthProvider";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,7 +20,9 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <body>
-        <SharedLayout>{children}</SharedLayout>
+        <AuthProvider>
+          <SharedLayout>{children}</SharedLayout>
+        </AuthProvider>
       </body>
     </html>
   );
