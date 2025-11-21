@@ -2,17 +2,38 @@
 
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { loadReflections, type Reflection } from "@/lib/reflections";
 
 export default function DashboardPage() {
   const { currentUser, loading, signOut } = useUser();
   const router = useRouter();
+  const [reflections, setReflections] = useState<Reflection[]>([]);
+  const [isLoadingReflections, setIsLoadingReflections] = useState(true);
 
   useEffect(() => {
     if (!loading && !currentUser) {
       router.replace("/signin");
     }
   }, [loading, currentUser, router]);
+
+  useEffect(() => {
+    const fetchReflections = async () => {
+      if (!currentUser) return;
+
+      try {
+        setIsLoadingReflections(true);
+        const data = await loadReflections(currentUser.uid);
+        setReflections(data);
+      } catch (error) {
+        console.error("Failed to load reflections", error);
+      } finally {
+        setIsLoadingReflections(false);
+      }
+    };
+
+    fetchReflections();
+  }, [currentUser]);
 
   if (loading || !currentUser) {
     return <p className="text-center text-slate-600">Loading your dashboard...</p>;
@@ -36,6 +57,31 @@ export default function DashboardPage() {
         You are signed in as <span className="font-medium">{currentUser.email}</span>. Head over to the
         reflection page to capture your thoughts.
       </p>
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-slate-900">Your reflections</h3>
+          {isLoadingReflections && <span className="text-sm text-slate-500">Loading...</span>}
+        </div>
+        {reflections.length === 0 && !isLoadingReflections ? (
+          <p className="rounded-md border border-dashed border-slate-200 bg-slate-50 p-4 text-slate-600">
+            You haven&apos;t saved any reflections yet. Head over to the reflection page to start capturing your thoughts.
+          </p>
+        ) : (
+          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
+            {reflections.map((reflection) => (
+              <li key={reflection.id} className="space-y-1 p-4">
+                <p className="text-slate-800">{reflection.text}</p>
+                <p className="text-sm text-slate-500">
+                  {new Date(reflection.createdAt).toLocaleString(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  })}
+                </p>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }
