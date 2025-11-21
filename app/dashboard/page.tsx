@@ -100,6 +100,12 @@ export default function DashboardPage() {
                     timeStyle: "short",
                   })}
                 </p>
+                <Link
+                  href={`/reflection/${reflection.id}`}
+                  className="inline-flex items-center text-sm font-semibold text-slate-900 underline decoration-slate-300 decoration-2 underline-offset-4 transition hover:decoration-slate-500"
+                >
+                  View details
+                </Link>
               </li>
             ))}
           </ul>
