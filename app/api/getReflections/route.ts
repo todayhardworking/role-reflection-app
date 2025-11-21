@@ -21,15 +21,25 @@ export async function GET(request: NextRequest) {
     const reflections = snapshot.docs.map((doc) => {
       const data = doc.data() as {
         text: string;
-        createdAt?: FirebaseFirestore.Timestamp;
+        createdAt?: FirebaseFirestore.Timestamp | string;
         uid: string;
       };
+
+      const createdAtValue = data.createdAt;
+      const createdAt = createdAtValue
+        ? typeof (createdAtValue as FirebaseFirestore.Timestamp).toDate ===
+          "function"
+          ? (createdAtValue as FirebaseFirestore.Timestamp)
+              .toDate()
+              .toISOString()
+          : (createdAtValue as string)
+        : null;
 
       return {
         id: doc.id,
         text: data.text,
         uid: data.uid,
-        createdAt: data.createdAt?.toDate().toISOString() ?? null,
+        createdAt,
       };
     });
 
