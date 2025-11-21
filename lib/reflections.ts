@@ -30,7 +30,7 @@ export async function saveReflection(text: string, uid: string): Promise<SaveRef
 }
 
 export async function loadReflections(uid: string): Promise<Reflection[]> {
-  const response = await fetch(`/api/getReflections?uid=${encodeURIComponent(uid)}`);
+  const response = await fetch(`/api/getReflections?uid=${uid}`);
 
   if (!response.ok) {
     throw new Error("Failed to load reflections");
