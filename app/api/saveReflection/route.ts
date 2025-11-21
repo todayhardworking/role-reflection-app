@@ -1,6 +1,5 @@
-import { firebaseApp } from "@/lib/firebase";
 import { NextResponse } from "next/server";
-import { addDoc, collection, getFirestore } from "firebase/firestore";
+import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function POST(request: Request) {
   try {
@@ -10,8 +9,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
-    const db = getFirestore(firebaseApp);
-    const docRef = await addDoc(collection(db, "reflections"), {
+    const docRef = await adminDb.collection("reflections").add({
       uid,
       text,
       createdAt,
