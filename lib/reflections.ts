@@ -1,7 +1,8 @@
 export interface Reflection {
   id: string;
   text: string;
-  createdAt: string;
+  createdAt: string | null;
+  suggestions?: Record<string, string> | null;
 }
 
 interface SaveReflectionResponse {
@@ -38,4 +39,21 @@ export async function loadReflections(uid: string): Promise<Reflection[]> {
 
   const data = await response.json();
   return data.reflections as Reflection[];
+}
+
+export async function loadReflection(reflectionId: string, uid?: string): Promise<Reflection> {
+  const searchParams = new URLSearchParams({ reflectionId });
+  if (uid) {
+    searchParams.set("uid", uid);
+  }
+
+  const response = await fetch(`/api/getReflection?${searchParams.toString()}`);
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to load reflection");
+  }
+
+  const data = await response.json();
+  return data.reflection as Reflection;
 }
