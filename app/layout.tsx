@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
-import { SharedLayout } from "@/components/SharedLayout";
-import { UserProvider } from "@/context/UserContext";
-import { RouteGuard } from "@/components/RouteGuard";
+import { UserContextProvider } from "@/context/UserContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,11 +19,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={inter.className}>
       <body>
-        <UserProvider>
-          <RouteGuard>
-            <SharedLayout>{children}</SharedLayout>
-          </RouteGuard>
-        </UserProvider>
+        <UserContextProvider>{children}</UserContextProvider>
       </body>
     </html>
   );

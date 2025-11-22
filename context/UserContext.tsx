@@ -47,6 +47,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
+export const UserContextProvider = UserProvider;
+
 export function useUser() {
   const context = useContext(UserContext);
 

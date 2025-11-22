@@ -1,9 +1,9 @@
 "use client";
 
+import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import { loadReflections, type Reflection } from "@/lib/reflections";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 
 type ReflectionGroups = Record<
@@ -86,19 +86,12 @@ function groupReflections(reflections: Reflection[]): ReflectionGroups {
   return groups;
 }
 
-export default function ReflectionsPage() {
+function ReflectionsPage() {
   const { currentUser, loading } = useUser();
-  const router = useRouter();
 
   const [reflections, setReflections] = useState<Reflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!loading && !currentUser) {
-      router.replace("/signin");
-    }
-  }, [currentUser, loading, router]);
 
   useEffect(() => {
     const fetchReflections = async () => {
@@ -215,3 +208,5 @@ export default function ReflectionsPage() {
     </section>
   );
 }
+
+export default withAuth(ReflectionsPage);

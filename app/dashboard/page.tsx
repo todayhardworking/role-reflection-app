@@ -1,9 +1,10 @@
 "use client";
 
-import { UserContext } from "@/context/UserContext";
+import withAuth from "@/components/withAuth";
+import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface MenuCard {
   title: string;
@@ -12,8 +13,8 @@ interface MenuCard {
   action?: () => void;
 }
 
-export default function DashboardPage() {
-  const userContext = useContext(UserContext);
+function DashboardPage() {
+  const { currentUser, signOut } = useUser();
   const router = useRouter();
 
   const [showInitialDeleteConfirm, setShowInitialDeleteConfirm] = useState(false);
@@ -21,22 +22,6 @@ export default function DashboardPage() {
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!userContext) return;
-
-    const { loading, currentUser } = userContext;
-
-    if (!loading && !currentUser) {
-      router.replace("/signin");
-    }
-  }, [userContext, router]);
-
-  if (!userContext) {
-    return <p className="text-center text-slate-600">Loading your dashboard...</p>;
-  }
-
-  const { currentUser, loading, signOut } = userContext;
 
   const menuCards: MenuCard[] = useMemo(
     () => [
@@ -108,8 +93,8 @@ export default function DashboardPage() {
     setError(null);
   };
 
-  if (loading || !currentUser) {
-    return <p className="text-center text-slate-600">Loading your dashboard...</p>;
+  if (!currentUser) {
+    return null;
   }
 
   return (
@@ -236,3 +221,5 @@ export default function DashboardPage() {
     </section>
   );
 }
+
+export default withAuth(DashboardPage);
