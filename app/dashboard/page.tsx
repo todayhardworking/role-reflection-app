@@ -95,7 +95,7 @@ export default function DashboardPage() {
               <li key={reflection.id} className="space-y-1 p-4">
                 <p className="text-slate-800">{reflection.text}</p>
                 <p className="text-sm text-slate-500">
-                  {new Date(reflection.createdAt).toLocaleString(undefined, {
+                  {new Date(reflection.createdAt ?? "").toLocaleString(undefined, {
                     dateStyle: "medium",
                     timeStyle: "short",
                   })}

@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
               .toDate()
               .toISOString()
           : (createdAtValue as string)
-        : null;
+        : "";
 
       return {
         id: doc.id,
