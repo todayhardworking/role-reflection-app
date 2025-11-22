@@ -1,5 +1,7 @@
 "use client";
 
+export const authRequired = true;
+
 import { UserContext } from "@/context/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

@@ -1,5 +1,7 @@
 "use client";
 
+export const authRequired = true;
+
 import { useUser } from "@/context/UserContext";
 import { saveReflection } from "@/lib/reflections";
 import Link from "next/link";
