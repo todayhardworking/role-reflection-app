@@ -1,7 +1,7 @@
 export interface Reflection {
   id: string;
   text: string;
-  createdAt: string | null;
+  createdAt: string;
   suggestions?: Record<string, string> | null;
 }
 

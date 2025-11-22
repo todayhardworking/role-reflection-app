@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from "react";
 
 interface ReflectionDetailsState {
   text: string;
-  createdAt: string | null;
+  createdAt: string;
 }
 
 export default function ReflectionDetailsPage() {
