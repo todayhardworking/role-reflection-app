@@ -181,10 +181,13 @@ export default function withAuth<P>(WrappedComponent: ComponentType<P>) {
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <header className="sticky top-0 z-20 flex items-center justify-between border-b border-slate-200 bg-white p-4">
           <span className="text-lg font-semibold text-slate-900">Revo Reflect</span>
-          <Bars3Icon
-            className="h-7 w-7 cursor-pointer text-slate-800"
+          <button
             onClick={() => setIsDrawerOpen(true)}
-          />
+            className="rounded-md p-1 transition hover:bg-slate-100"
+            aria-label="Open navigation menu"
+          >
+            <Bars3Icon className="h-7 w-7 text-slate-800" />
+          </button>
         </header>
 
         <div className="mx-auto flex max-w-4xl flex-col gap-8 px-6 py-10">
