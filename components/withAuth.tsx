@@ -2,7 +2,7 @@
 
 import { useUser } from "@/context/UserContext";
 import { useRouter } from "next/navigation";
-import { ComponentType, useEffect, useMemo, useState } from "react";
+import React, { ComponentType, useEffect, useMemo, useState } from "react";
 
 type IconProps = { className?: string };
 
@@ -118,7 +118,9 @@ function LoadingState({ message }: { message: string }) {
   );
 }
 
-export default function withAuth<P>(WrappedComponent: ComponentType<P>) {
+export default function withAuth<P extends object>(
+  WrappedComponent: ComponentType<P>,
+) {
   function ComponentWithAuth(props: P) {
     const { currentUser, loading, signOut } = useUser();
     const router = useRouter();
@@ -243,7 +245,7 @@ export default function withAuth<P>(WrappedComponent: ComponentType<P>) {
   }
 
   const wrappedName = WrappedComponent.displayName || WrappedComponent.name || "Component";
-  ComponentWithAuth.displayName = `withAuth(${wrappedName})`;
+  (ComponentWithAuth as React.ComponentType<P>).displayName = `withAuth(${wrappedName})`;
 
-  return ComponentWithAuth;
+  return ComponentWithAuth as React.ComponentType<P>;
 }
