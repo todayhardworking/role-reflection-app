@@ -15,35 +15,7 @@ type SuggestionsResponse = Record<string, RoleSuggestion>;
 
 function buildPrompt(reflectionText: string, roles: string[]): string {
   const rolesList = roles.map((role) => `- ${role}`).join("\n");
-  return `You are an executive coach who provides clear, actionable guidance with a balanced tone (warm, supportive, and practical).
-
-For each role listed, perform the following:
-1. Create a short, concise title (3–6 words) summarizing the main advice.
-2. Write a single coaching suggestion of 5–7 sentences.
-3. The suggestion MUST explicitly reference details from the provided reflection and give specific next steps the user can take.
-4. If a role is not applicable, return:
-   { "title": "Not applicable", "suggestion": "Not applicable" }
-
-Your response must be ONLY valid JSON with this structure:
-
-{
-  "RoleName": {
-    "title": "Short title",
-    "suggestion": "5–7 sentence coaching advice referencing the reflection."
-  },
-  "AnotherRole": {
-    "title": "Short title",
-    "suggestion": "Advice..."
-  }
-}
-
-No commentary, no notes, no explanation outside JSON.
-
-Reflection:
-${reflectionText}
-
-Roles:
-${rolesList}`;
+  return `Reflection:\n${reflectionText}\n\nRoles:\n${rolesList}`;
 }
 
 function cleanJson(content: string | null | undefined): string {
@@ -78,7 +50,7 @@ async function callChatModel(prompt: string): Promise<SuggestionsResponse> {
         {
           role: "system",
           content:
-            "You are a focused coaching assistant. Return only JSON objects without additional formatting.",
+            "You are an executive coach who provides clear, actionable guidance with a balanced tone (warm, supportive, and practical).\n\n    For each role listed, you MUST return exactly one JSON object with:\n    {\n      \"title\": \"...\",\n      \"suggestion\": \"...\"\n    }\n\n    Rules:\n    1. ALWAYS return a JSON entry for EVERY role in the input.\n    2. If the reflection is not relevant to a role, return:\n       { \"title\": \"No suitable suggestions\", \"suggestion\": \"No suitable suggestions\" }\n    3. For applicable roles:\n       - Create a short, concise title (3–6 words).\n       - Write a coaching suggestion of 5–7 sentences.\n       - The suggestion MUST reference specific details from the provided reflection.\n       - Include specific next steps the user can take.\n\n    Your response must be ONLY valid JSON structured like:\n\n    {\n      \"Role1\": { \"title\": \"...\", \"suggestion\": \"...\" },\n      \"Role2\": { \"title\": \"...\", \"suggestion\": \"...\" },\n      ...\n    }\n\n    No commentary or explanation outside JSON.",
         },
         {
           role: "user",
@@ -133,7 +105,18 @@ export async function POST(request: Request) {
     }
 
     const prompt = buildPrompt(reflectionText, roles);
-    const suggestions = await callChatModel(prompt);
+    const aiSuggestions = await callChatModel(prompt);
+
+    const suggestions = roles.reduce<SuggestionsResponse>((acc, role) => {
+      const aiEntry = aiSuggestions[role];
+
+      acc[role] = aiEntry ?? {
+        title: "No suitable suggestions",
+        suggestion: "No suitable suggestions",
+      };
+
+      return acc;
+    }, {});
 
     await adminDb
       .collection("reflections")
