@@ -183,7 +183,7 @@ export default function withAuth<P>(WrappedComponent: ComponentType<P>) {
           <span className="text-lg font-semibold text-slate-900">Revo Reflect</span>
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="rounded-md p-1 transition hover:bg-slate-100"
+            className="p-1 rounded-md hover:bg-slate-100 transition"
             aria-label="Open navigation menu"
           >
             <Bars3Icon className="h-7 w-7 text-slate-800" />
