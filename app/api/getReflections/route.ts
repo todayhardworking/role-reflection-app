@@ -25,20 +25,16 @@ export async function GET(request: NextRequest) {
         uid: string;
       };
 
-      const createdAtValue = data.createdAt;
-      const createdAt = createdAtValue
-        ? typeof (createdAtValue as FirebaseFirestore.Timestamp).toDate ===
-          "function"
-          ? (createdAtValue as FirebaseFirestore.Timestamp)
-              .toDate()
-              .toISOString()
-          : (createdAtValue as string)
-        : null;
+      const raw = data.createdAt;
+      const createdAt = raw?.toDate
+        ? raw.toDate().toISOString()
+        : typeof raw === "string"
+          ? raw
+          : new Date().toISOString();
 
       return {
         id: doc.id,
         text: data.text,
-        uid: data.uid,
         createdAt,
       };
     });

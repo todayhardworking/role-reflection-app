@@ -30,12 +30,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
-    const createdAtValue = data?.createdAt;
-    const createdAt = createdAtValue
-      ? typeof (createdAtValue as FirebaseFirestore.Timestamp).toDate === "function"
-        ? (createdAtValue as FirebaseFirestore.Timestamp).toDate().toISOString()
-        : (createdAtValue as string)
-      : null;
+    const raw = data?.createdAt;
+    const createdAt = raw?.toDate
+      ? raw.toDate().toISOString()
+      : typeof raw === "string"
+        ? raw
+        : new Date().toISOString();
 
     return NextResponse.json({
       reflection: {
