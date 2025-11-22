@@ -1,7 +1,7 @@
 "use client";
 
 import { useUser } from "@/context/UserContext";
-import { loadReflection } from "@/lib/reflections";
+import { deleteReflection, loadReflection } from "@/lib/reflections";
 import { generateSuggestions, loadSuggestions, type Suggestions } from "@/lib/suggestions";
 import { loadRoles } from "@/lib/roles";
 import { useParams, useRouter } from "next/navigation";
@@ -22,6 +22,8 @@ export default function ReflectionDetailsPage() {
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const reflectionId = useMemo(() => params?.id, [params]);
@@ -86,6 +88,29 @@ export default function ReflectionDetailsPage() {
     }
   };
 
+  const handleEdit = () => {
+    if (!reflectionId) return;
+
+    router.push(`/reflection/${reflectionId}/edit`);
+  };
+
+  const handleDelete = async () => {
+    if (!currentUser || !reflectionId) return;
+
+    try {
+      setIsDeleting(true);
+      setError(null);
+      await deleteReflection(reflectionId, currentUser.uid);
+      router.push("/dashboard");
+    } catch (err) {
+      console.error(err);
+      setError("Failed to delete reflection. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteConfirm(false);
+    }
+  };
+
   if (loading || !currentUser || isLoading) {
     return <p className="text-center text-slate-600">Loading reflection...</p>;
   }
@@ -108,6 +133,49 @@ export default function ReflectionDetailsPage() {
             : "Date unavailable"}
         </p>
       </header>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={handleEdit}
+          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          Edit
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 transition hover:bg-red-100"
+        >
+          Delete
+        </button>
+      </div>
+
+      {showDeleteConfirm && (
+        <div className="space-y-3 rounded-md border border-red-200 bg-red-50 p-4">
+          <p className="text-sm text-red-800">
+            Are you sure you want to delete this reflection? This action cannot be undone.
+          </p>
+          <div className="flex gap-3">
+            <button
+              type="button"
+              onClick={() => setShowDeleteConfirm(false)}
+              className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              disabled={isDeleting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-400"
+            >
+              {isDeleting ? "Deleting..." : "Delete"}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <h3 className="text-lg font-semibold text-slate-900">Reflection Text</h3>

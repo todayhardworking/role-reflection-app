@@ -2,6 +2,7 @@ export interface Reflection {
   id: string;
   text: string;
   createdAt: string;
+  updatedAt?: string;
   suggestions?: Record<string, string> | null;
 }
 
@@ -56,4 +57,45 @@ export async function loadReflection(reflectionId: string, uid?: string): Promis
 
   const data = await response.json();
   return data.reflection as Reflection;
+}
+
+export async function updateReflection(
+  reflectionId: string,
+  uid: string,
+  text: string,
+): Promise<void> {
+  const response = await fetch("/api/updateReflection", {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      uid,
+      reflectionId,
+      text,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to update reflection");
+  }
+}
+
+export async function deleteReflection(reflectionId: string, uid: string): Promise<void> {
+  const response = await fetch("/api/deleteReflection", {
+    method: "DELETE",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      uid,
+      reflectionId,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to delete reflection");
+  }
 }
