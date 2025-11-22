@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { type RoleSuggestion } from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -10,9 +11,39 @@ interface GenerateRequestBody {
   roles?: string[];
 }
 
+type SuggestionsResponse = Record<string, RoleSuggestion>;
+
 function buildPrompt(reflectionText: string, roles: string[]): string {
   const rolesList = roles.map((role) => `- ${role}`).join("\n");
-  return `You are an executive coach who provides concise, actionable guidance. For each role listed, write a single coaching suggestion of 5-7 sentences tailored to the provided reflection. If a role is not applicable, respond with "Not applicable" for that role. Respond ONLY with valid JSON where each key is the role name and each value is the suggestion string. Do not include any additional commentary or formatting.\n\nReflection:\n${reflectionText}\n\nRoles:\n${rolesList}`;
+  return `You are an executive coach who provides clear, actionable guidance with a balanced tone (warm, supportive, and practical).
+
+For each role listed, perform the following:
+1. Create a short, concise title (3–6 words) summarizing the main advice.
+2. Write a single coaching suggestion of 5–7 sentences.
+3. The suggestion MUST explicitly reference details from the provided reflection and give specific next steps the user can take.
+4. If a role is not applicable, return:
+   { "title": "Not applicable", "suggestion": "Not applicable" }
+
+Your response must be ONLY valid JSON with this structure:
+
+{
+  "RoleName": {
+    "title": "Short title",
+    "suggestion": "5–7 sentence coaching advice referencing the reflection."
+  },
+  "AnotherRole": {
+    "title": "Short title",
+    "suggestion": "Advice..."
+  }
+}
+
+No commentary, no notes, no explanation outside JSON.
+
+Reflection:
+${reflectionText}
+
+Roles:
+${rolesList}`;
 }
 
 function cleanJson(content: string | null | undefined): string {
@@ -26,7 +57,7 @@ function cleanJson(content: string | null | undefined): string {
   return trimmed;
 }
 
-async function callChatModel(prompt: string) {
+async function callChatModel(prompt: string): Promise<SuggestionsResponse> {
   const apiKey = process.env.OPENAI_API_KEY;
   const model = process.env.OPENAI_MODEL || "gpt-4o-mini";
 
@@ -68,7 +99,7 @@ async function callChatModel(prompt: string) {
   };
   const content = data.choices?.[0]?.message?.content;
   const jsonText = cleanJson(content);
-  return JSON.parse(jsonText) as Record<string, string>;
+  return JSON.parse(jsonText) as SuggestionsResponse;
 }
 
 export async function POST(request: Request) {

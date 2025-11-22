@@ -20,6 +20,7 @@ export default function ReflectionDetailsPage() {
   const [reflection, setReflection] = useState<ReflectionDetailsState | null>(null);
   const [roles, setRoles] = useState<string[]>([]);
   const [suggestions, setSuggestions] = useState<Suggestions | null>(null);
+  const [openRole, setOpenRole] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -111,6 +112,17 @@ export default function ReflectionDetailsPage() {
     }
   };
 
+  const orderedSuggestions = useMemo(() => {
+    if (!suggestions) return [] as { role: string; data: Suggestions[string] }[];
+
+    return roles
+      .map((role) => ({ role, data: suggestions[role] }))
+      .filter(
+        (entry): entry is { role: string; data: Suggestions[string] } =>
+          Boolean(entry.data),
+      );
+  }, [roles, suggestions]);
+
   if (loading || !currentUser || isLoading) {
     return <p className="text-center text-slate-600">Loading reflection...</p>;
   }
@@ -201,16 +213,50 @@ export default function ReflectionDetailsPage() {
         {error && <p className="text-sm text-red-600">{error}</p>}
       </div>
 
-      {suggestions && Object.keys(suggestions).length > 0 && (
+      {orderedSuggestions.length > 0 && (
         <div className="space-y-4 rounded-md border border-slate-200 bg-slate-50 p-4">
           <h3 className="text-lg font-semibold text-slate-900">AI Suggestions</h3>
-          <div className="space-y-3">
-            {Object.entries(suggestions).map(([role, suggestion]) => (
-              <div key={role} className="space-y-1 rounded-md border border-slate-200 bg-white p-3">
-                <h4 className="text-sm font-semibold text-slate-800">{role}</h4>
-                <p className="text-sm text-slate-700">{suggestion}</p>
-              </div>
-            ))}
+          <div className="space-y-2">
+            {orderedSuggestions.map(({ role, data }) => {
+              const isOpen = openRole === role;
+              const isNotApplicable =
+                data.title === "Not applicable" &&
+                data.suggestion === "Not applicable";
+
+              return (
+                <div
+                  key={role}
+                  className="rounded-md border border-slate-200 bg-white"
+                >
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setOpenRole((prev) => (prev === role ? null : role))
+                    }
+                    className="flex w-full items-center justify-between gap-3 rounded-md px-4 py-3 text-left hover:bg-slate-50"
+                  >
+                    <div className="flex flex-col">
+                      <span className="text-sm font-semibold text-slate-800">
+                        {role} — {data.title}
+                      </span>
+                      {isNotApplicable && (
+                        <span className="text-xs text-slate-500">Not applicable</span>
+                      )}
+                    </div>
+                    <span className="text-lg font-semibold text-slate-500">
+                      {isOpen ? "−" : "+"}
+                    </span>
+                  </button>
+                  {isOpen && (
+                    <div className="border-t border-slate-200 px-4 py-3">
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                        {data.suggestion}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
