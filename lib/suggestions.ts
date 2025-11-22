@@ -1,4 +1,6 @@
-export type Suggestions = Record<string, string>;
+import { type RoleSuggestion } from "./reflections";
+
+export type Suggestions = Record<string, RoleSuggestion>;
 
 async function handleResponse(response: Response) {
   if (!response.ok) {

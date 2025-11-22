@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { type RoleSuggestion } from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export async function GET(request: NextRequest) {
       text?: string;
       createdAt?: FirebaseFirestore.Timestamp | string;
       uid?: string;
-      suggestions?: Record<string, string>;
+      suggestions?: Record<string, RoleSuggestion>;
     };
 
     if (uid && data?.uid && data.uid !== uid) {

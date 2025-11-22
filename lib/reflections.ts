@@ -1,9 +1,14 @@
+export interface RoleSuggestion {
+  title: string;
+  suggestion: string;
+}
+
 export interface Reflection {
   id: string;
   text: string;
   createdAt: string;
   updatedAt?: string;
-  suggestions?: Record<string, string> | null;
+  suggestions?: Record<string, RoleSuggestion> | null;
 }
 
 interface SaveReflectionResponse {
