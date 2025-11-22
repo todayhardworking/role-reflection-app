@@ -12,6 +12,7 @@ export default function EditReflectionPage() {
 
   const reflectionId = useMemo(() => params?.id, [params]);
 
+  const [title, setTitle] = useState("");
   const [text, setText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -30,6 +31,7 @@ export default function EditReflectionPage() {
       try {
         setIsLoading(true);
         const reflection = await loadReflection(reflectionId, currentUser.uid);
+        setTitle(reflection.title);
         setText(reflection.text);
       } catch (err) {
         console.error(err);
@@ -50,7 +52,7 @@ export default function EditReflectionPage() {
     try {
       setIsSaving(true);
       setError(null);
-      await updateReflection(reflectionId, currentUser.uid, text.trim());
+      await updateReflection(reflectionId, currentUser.uid, text.trim(), title.trim());
       router.push(`/reflection/${reflectionId}`);
     } catch (err) {
       console.error(err);
@@ -77,6 +79,18 @@ export default function EditReflectionPage() {
       </header>
 
       <form onSubmit={handleSave} className="space-y-4">
+        <div className="space-y-2">
+          <label htmlFor="title" className="text-sm font-semibold text-slate-800">
+            Reflection Title
+          </label>
+          <input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="text-2xl font-semibold text-slate-900 w-full border border-slate-200 rounded-md px-3 py-2 outline-none placeholder-slate-400"
+            placeholder="Title (optional — if left empty, the first 1–2 lines will be used)"
+          />
+        </div>
         <div className="space-y-2">
           <label htmlFor="reflection" className="text-sm font-semibold text-slate-800">
             Reflection Text

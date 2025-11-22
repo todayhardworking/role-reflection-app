@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
         text: string;
         createdAt?: FirebaseFirestore.Timestamp | string;
         uid: string;
+        title?: string;
+        rolesInvolved?: string[];
+        suggestions?: Record<string, unknown> | null;
       };
 
       const createdAtValue = data.createdAt;
@@ -35,11 +38,22 @@ export async function GET(request: NextRequest) {
           : (createdAtValue as string)
         : "";
 
+      const derivedTitle = (data.title ?? "").trim() ||
+        data.text
+          .split(/\r?\n/)
+          .map((line) => line.trim())
+          .filter(Boolean)
+          .slice(0, 2)
+          .join(" ");
+
       return {
         id: doc.id,
         text: data.text,
+        title: derivedTitle,
         uid: data.uid,
         createdAt,
+        rolesInvolved: data.rolesInvolved ?? [],
+        suggestions: (data.suggestions as Record<string, unknown> | null) ?? null,
       };
     });
 

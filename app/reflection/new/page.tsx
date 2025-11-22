@@ -10,6 +10,7 @@ export default function NewReflectionPage() {
   const { currentUser, loading } = useUser();
   const router = useRouter();
 
+  const [title, setTitle] = useState("");
   const [reflection, setReflection] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,8 +30,9 @@ export default function NewReflectionPage() {
     try {
       setSaving(true);
       setError(null);
-      await saveReflection(reflection.trim(), currentUser.uid);
+      await saveReflection(reflection.trim(), currentUser.uid, title.trim());
       setShowSuccess(true);
+      setTitle("");
       setReflection("");
     } catch (err) {
       console.error(err);
@@ -42,6 +44,7 @@ export default function NewReflectionPage() {
 
   const resetForm = () => {
     setShowSuccess(false);
+    setTitle("");
     setReflection("");
     setError(null);
   };
@@ -83,6 +86,19 @@ export default function NewReflectionPage() {
         <p className="text-sm text-slate-500">Capture your thoughts</p>
         <h2 className="text-2xl font-semibold text-slate-900">New Reflection</h2>
       </header>
+      <div className="space-y-2">
+        <label htmlFor="title" className="sr-only">
+          Reflection Title
+        </label>
+        <input
+          id="title"
+          name="title"
+          value={title}
+          onChange={(event) => setTitle(event.target.value)}
+          className="text-2xl font-semibold text-slate-900 w-full border-none outline-none placeholder-slate-400"
+          placeholder="Title (optional — if left empty, the first 1–2 lines will be used)"
+        />
+      </div>
       <div className="space-y-2">
         <label htmlFor="reflection" className="block text-sm font-medium text-slate-700">
           What stood out to you today?

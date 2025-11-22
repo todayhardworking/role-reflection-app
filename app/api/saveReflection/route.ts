@@ -1,19 +1,31 @@
-import admin from "firebase-admin";
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function POST(request: Request) {
   try {
-    const { uid, text } = await request.json();
+    const { uid, text, title, createdAt } = await request.json();
 
     if (!uid || !text) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
+    const trimmedText = text.trim();
+    const trimmedTitle = (title as string | undefined)?.trim() ?? "";
+
+    const derivedTitle = trimmedTitle ||
+      trimmedText
+        .split(/\r?\n/)
+        .map((line: string) => line.trim())
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" ") ||
+      "";
+
     const docRef = await adminDb.collection("reflections").add({
       uid,
-      text,
-      createdAt: admin.firestore.Timestamp.now(),
+      text: trimmedText,
+      title: derivedTitle,
+      createdAt: createdAt || new Date().toISOString(),
     });
 
     return NextResponse.json({ success: true, id: docRef.id });

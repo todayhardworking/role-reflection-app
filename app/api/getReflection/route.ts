@@ -25,6 +25,8 @@ export async function GET(request: NextRequest) {
       createdAt?: FirebaseFirestore.Timestamp | string;
       uid?: string;
       suggestions?: Record<string, RoleSuggestion>;
+      title?: string;
+      rolesInvolved?: string[];
     };
 
     if (uid && data?.uid && data.uid !== uid) {
@@ -38,6 +40,14 @@ export async function GET(request: NextRequest) {
         : (createdAtValue as string)
       : "";
 
+    const derivedTitle = (data?.title ?? "").trim() ||
+      (data?.text ?? "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" ");
+
     return NextResponse.json({
       reflection: {
         id: doc.id,
@@ -45,6 +55,8 @@ export async function GET(request: NextRequest) {
         createdAt,
         uid: data?.uid ?? "",
         suggestions: data?.suggestions ?? null,
+        title: derivedTitle,
+        rolesInvolved: data?.rolesInvolved ?? [],
       },
     });
   } catch (error) {
