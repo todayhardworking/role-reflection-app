@@ -3,14 +3,24 @@
 import { UserContext } from "@/context/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useContext, useEffect, useState } from "react";
-import { loadReflections, type Reflection } from "@/lib/reflections";
+import { useContext, useEffect, useMemo, useState } from "react";
+
+interface MenuCard {
+  title: string;
+  description: string;
+  href?: string;
+  action?: () => void;
+}
 
 export default function DashboardPage() {
   const userContext = useContext(UserContext);
   const router = useRouter();
-  const [reflections, setReflections] = useState<Reflection[]>([]);
-  const [isLoadingReflections, setIsLoadingReflections] = useState(true);
+
+  const [showInitialDeleteConfirm, setShowInitialDeleteConfirm] = useState(false);
+  const [showFinalDeleteConfirm, setShowFinalDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!userContext) return;
@@ -22,95 +32,207 @@ export default function DashboardPage() {
     }
   }, [userContext, router]);
 
-  useEffect(() => {
-    if (!userContext) return;
-
-    const { loading, currentUser } = userContext;
-
-    if (loading || !currentUser) return;
-
-    const fetchReflections = async () => {
-      try {
-        setIsLoadingReflections(true);
-        const data = await loadReflections(currentUser.uid);
-        setReflections(data);
-      } catch (error) {
-        console.error("Failed to load reflections", error);
-      } finally {
-        setIsLoadingReflections(false);
-      }
-    };
-
-    fetchReflections();
-  }, [userContext]);
-
   if (!userContext) {
     return <p className="text-center text-slate-600">Loading your dashboard...</p>;
   }
 
   const { currentUser, loading, signOut } = userContext;
 
+  const menuCards: MenuCard[] = useMemo(
+    () => [
+      {
+        title: "Add Reflection",
+        description: "Capture a new reflection while it&apos;s fresh in your mind.",
+        href: "/reflection/new",
+      },
+      {
+        title: "View Reflections List",
+        description: "Browse all of your past reflections in one place.",
+        href: "/reflections",
+      },
+      {
+        title: "Manage Roles",
+        description: "Update the roles that guide your reflections and coaching.",
+        href: "/roles",
+      },
+      {
+        title: "Delete Account & Data",
+        description: "Remove your account and all stored reflections permanently.",
+        action: () => {
+          setShowInitialDeleteConfirm(true);
+          setError(null);
+        },
+      },
+    ],
+    [],
+  );
+
+  const handleDeleteAccount = async () => {
+    if (!currentUser) return;
+
+    try {
+      setIsDeleting(true);
+      setError(null);
+
+      const token = await currentUser.getIdToken(true);
+
+      const response = await fetch("/api/deleteAccount", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body?.error || "Failed to delete account");
+      }
+
+      await signOut();
+      router.replace("/signin");
+    } catch (err) {
+      console.error(err);
+      setError("Unable to delete account. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setDeleteInput("");
+      setShowFinalDeleteConfirm(false);
+      setShowInitialDeleteConfirm(false);
+    }
+  };
+
+  const closeModals = () => {
+    setShowInitialDeleteConfirm(false);
+    setShowFinalDeleteConfirm(false);
+    setDeleteInput("");
+    setError(null);
+  };
+
   if (loading || !currentUser) {
     return <p className="text-center text-slate-600">Loading your dashboard...</p>;
   }
 
   return (
-    <section className="space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-      <header className="flex items-center justify-between gap-4">
+    <section className="space-y-6 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm text-slate-500">Welcome back</p>
           <h2 className="text-2xl font-semibold text-slate-900">Dashboard</h2>
+          <p className="text-slate-700">You are signed in as {currentUser.email}</p>
         </div>
         <button
           onClick={signOut}
-          className="rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
+          className="self-start rounded-md border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-300"
         >
           Sign Out
         </button>
       </header>
-      <p className="text-slate-700">
-        You are signed in as <span className="font-medium">{currentUser.email}</span>. Head over to the
-        reflection page to capture your thoughts.
-      </p>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-slate-900">Your reflections</h3>
-          <div className="flex items-center gap-3">
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        {menuCards.map((card) => {
+          const content = (
+            <>
+              <div className="space-y-2">
+                <h3 className="text-xl font-semibold text-slate-900">{card.title}</h3>
+                <p className="text-slate-600">{card.description}</p>
+              </div>
+              <span className="text-sm font-semibold text-slate-700 transition group-hover:text-slate-900">
+                {card.href ? "Go" : "Continue"} ↗
+              </span>
+            </>
+          );
+
+          return card.href ? (
             <Link
-              href="/roles"
-              className="rounded-md border border-slate-200 px-3 py-1 text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
+              key={card.title}
+              href={card.href}
+              className="group relative flex min-h-[160px] flex-col justify-between rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 text-left shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-slate-300"
             >
-              Manage Roles
+              {content}
             </Link>
-            {isLoadingReflections && <span className="text-sm text-slate-500">Loading...</span>}
+          ) : (
+            <button
+              key={card.title}
+              type="button"
+              onClick={card.action}
+              className="group relative flex min-h-[160px] flex-col justify-between rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-white p-6 text-left shadow-md transition hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-slate-300"
+            >
+              {content}
+            </button>
+          );
+        })}
+      </div>
+
+      {error && (
+        <p className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>
+      )}
+
+      {showInitialDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-slate-900">Delete account?</h3>
+            <p className="text-sm text-slate-600">
+              Are you sure you want to delete your account? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeModals}
+                className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowInitialDeleteConfirm(false);
+                  setShowFinalDeleteConfirm(true);
+                  setError(null);
+                }}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500"
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
-        {reflections.length === 0 && !isLoadingReflections ? (
-          <p className="rounded-md border border-dashed border-slate-200 bg-slate-50 p-4 text-slate-600">
-            You haven&apos;t saved any reflections yet. Head over to the reflection page to start capturing your thoughts.
-          </p>
-        ) : (
-          <ul className="divide-y divide-slate-200 rounded-md border border-slate-200">
-            {reflections.map((reflection) => (
-              <li key={reflection.id} className="space-y-1 p-4">
-                <p className="text-slate-800">{reflection.text}</p>
-                <p className="text-sm text-slate-500">
-                  {new Date(reflection.createdAt ?? "").toLocaleString(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  })}
-                </p>
-                <Link
-                  href={`/reflection/${reflection.id}`}
-                  className="inline-flex items-center text-sm font-semibold text-slate-900 underline decoration-slate-300 decoration-2 underline-offset-4 transition hover:decoration-slate-500"
-                >
-                  View details
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      )}
+
+      {showFinalDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md space-y-4 rounded-lg border border-slate-200 bg-white p-6 shadow-xl">
+            <h3 className="text-xl font-semibold text-slate-900">Final confirmation</h3>
+            <p className="text-sm text-slate-600">
+              Type <span className="font-semibold">DELETE</span> to permanently delete your account and all your data.
+            </p>
+            <input
+              type="text"
+              value={deleteInput}
+              onChange={(event) => setDeleteInput(event.target.value)}
+              placeholder="Type DELETE"
+              className="w-full rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={closeModals}
+                className="rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                disabled={isDeleting}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleDeleteAccount}
+                disabled={deleteInput !== "DELETE" || isDeleting}
+                className="rounded-md bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:bg-red-400"
+              >
+                {isDeleting ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

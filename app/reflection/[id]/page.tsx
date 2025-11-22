@@ -102,7 +102,7 @@ export default function ReflectionDetailsPage() {
       setIsDeleting(true);
       setError(null);
       await deleteReflection(reflectionId, currentUser.uid);
-      router.push("/dashboard");
+      router.push("/reflections");
     } catch (err) {
       console.error(err);
       setError("Failed to delete reflection. Please try again.");
