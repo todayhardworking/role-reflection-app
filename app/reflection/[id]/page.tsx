@@ -113,14 +113,17 @@ export default function ReflectionDetailsPage() {
   };
 
   const orderedSuggestions = useMemo(() => {
-    if (!suggestions) return [] as { role: string; data: Suggestions[string] }[];
+    if (!suggestions || roles.length === 0)
+      return [] as { role: string; data: Suggestions[string] }[];
 
-    return roles
-      .map((role) => ({ role, data: suggestions[role] }))
-      .filter(
-        (entry): entry is { role: string; data: Suggestions[string] } =>
-          Boolean(entry.data),
-      );
+    return roles.map((role) => ({
+      role,
+      data:
+        suggestions[role] ?? {
+          title: "No suitable suggestions",
+          suggestion: "No suitable suggestions",
+        },
+    }));
   }, [roles, suggestions]);
 
   if (loading || !currentUser || isLoading) {
@@ -219,9 +222,18 @@ export default function ReflectionDetailsPage() {
           <div className="space-y-2">
             {orderedSuggestions.map(({ role, data }) => {
               const isOpen = openRole === role;
-              const isNotApplicable =
-                data.title === "Not applicable" &&
-                data.suggestion === "Not applicable";
+              const isNoSuggestion = data.title === "No suitable suggestions";
+
+              if (isNoSuggestion) {
+                return (
+                  <div
+                    key={role}
+                    className="rounded-md border border-slate-200 bg-white px-4 py-3 text-sm italic text-slate-500"
+                  >
+                    No suitable suggestions for: {role}
+                  </div>
+                );
+              }
 
               return (
                 <div
@@ -239,9 +251,6 @@ export default function ReflectionDetailsPage() {
                       <span className="text-sm font-semibold text-slate-800">
                         {role} — {data.title}
                       </span>
-                      {isNotApplicable && (
-                        <span className="text-xs text-slate-500">Not applicable</span>
-                      )}
                     </div>
                     <span className="text-lg font-semibold text-slate-500">
                       {isOpen ? "−" : "+"}
@@ -249,7 +258,7 @@ export default function ReflectionDetailsPage() {
                   </button>
                   {isOpen && (
                     <div className="border-t border-slate-200 px-4 py-3">
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap">
+                      <p className="whitespace-pre-wrap text-sm text-slate-700">
                         {data.suggestion}
                       </p>
                     </div>
