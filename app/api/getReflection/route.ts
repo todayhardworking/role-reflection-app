@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
       ? typeof (createdAtValue as FirebaseFirestore.Timestamp).toDate === "function"
         ? (createdAtValue as FirebaseFirestore.Timestamp).toDate().toISOString()
         : (createdAtValue as string)
-      : null;
+      : "";
 
     return NextResponse.json({
       reflection: {
