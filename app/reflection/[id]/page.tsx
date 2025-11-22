@@ -1,5 +1,6 @@
 "use client";
 
+import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import { deleteReflection, loadReflection } from "@/lib/reflections";
 import { generateSuggestions, loadSuggestions, type Suggestions } from "@/lib/suggestions";
@@ -14,7 +15,7 @@ interface ReflectionDetailsState {
   rolesInvolved?: string[];
 }
 
-export default function ReflectionDetailsPage() {
+function ReflectionDetailsPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const { currentUser, loading } = useUser();
@@ -30,12 +31,6 @@ export default function ReflectionDetailsPage() {
   const [error, setError] = useState<string | null>(null);
 
   const reflectionId = useMemo(() => params?.id, [params]);
-
-  useEffect(() => {
-    if (!loading && !currentUser) {
-      router.replace("/signin");
-    }
-  }, [currentUser, loading, router]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -291,3 +286,5 @@ export default function ReflectionDetailsPage() {
     </section>
   );
 }
+
+export default withAuth(ReflectionDetailsPage);

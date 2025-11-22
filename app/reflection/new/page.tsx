@@ -1,26 +1,19 @@
 "use client";
 
+import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import { saveReflection } from "@/lib/reflections";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-export default function NewReflectionPage() {
-  const { currentUser, loading } = useUser();
-  const router = useRouter();
+function NewReflectionPage() {
+  const { currentUser } = useUser();
 
   const [title, setTitle] = useState("");
   const [reflection, setReflection] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  useEffect(() => {
-    if (!loading && !currentUser) {
-      router.replace("/signin");
-    }
-  }, [currentUser, loading, router]);
 
   const handleSaveReflection = async () => {
     if (!currentUser || !reflection.trim()) {
@@ -49,8 +42,8 @@ export default function NewReflectionPage() {
     setError(null);
   };
 
-  if (loading || !currentUser) {
-    return <p className="text-center text-slate-600">Loading your reflection page...</p>;
+  if (!currentUser) {
+    return null;
   }
 
   if (showSuccess) {
@@ -128,3 +121,5 @@ export default function NewReflectionPage() {
     </section>
   );
 }
+
+export default withAuth(NewReflectionPage);

@@ -1,25 +1,18 @@
 "use client";
 
+import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import { addRole, loadRoles, removeRole } from "@/lib/roles";
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
-export default function RolesPage() {
+function RolesPage() {
   const { currentUser, loading } = useUser();
-  const router = useRouter();
   const [roles, setRoles] = useState<string[]>([]);
   const [newRole, setNewRole] = useState("");
   const [loadingRoles, setLoadingRoles] = useState(true);
   const [savingRole, setSavingRole] = useState(false);
   const [removingRole, setRemovingRole] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (!loading && !currentUser) {
-      router.replace("/signin");
-    }
-  }, [currentUser, loading, router]);
 
   useEffect(() => {
     if (!currentUser) return;
@@ -165,3 +158,5 @@ export default function RolesPage() {
     </section>
   );
 }
+
+export default withAuth(RolesPage);
