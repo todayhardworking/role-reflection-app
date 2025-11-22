@@ -1,5 +1,7 @@
 "use client";
 
+export const authRequired = true;
+
 import { useUser } from "@/context/UserContext";
 import { deleteReflection, loadReflection } from "@/lib/reflections";
 import { generateSuggestions, loadSuggestions, type Suggestions } from "@/lib/suggestions";

@@ -1,5 +1,7 @@
 "use client";
 
+export const authRequired = true;
+
 import { useUser } from "@/context/UserContext";
 import { addRole, loadRoles, removeRole } from "@/lib/roles";
 import { useRouter } from "next/navigation";

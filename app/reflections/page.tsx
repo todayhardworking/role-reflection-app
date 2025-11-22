@@ -1,5 +1,7 @@
 "use client";
 
+export const authRequired = true;
+
 import { useUser } from "@/context/UserContext";
 import { loadReflections, type Reflection } from "@/lib/reflections";
 import Link from "next/link";

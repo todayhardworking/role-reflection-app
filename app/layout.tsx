@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
-import { SharedLayout } from "@/components/SharedLayout";
+import { AppShell } from "@/components/AppShell";
 import { UserProvider } from "@/context/UserContext";
-import { RouteGuard } from "@/components/RouteGuard";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,9 +21,7 @@ export default function RootLayout({
     <html lang="en" className={inter.className}>
       <body>
         <UserProvider>
-          <RouteGuard>
-            <SharedLayout>{children}</SharedLayout>
-          </RouteGuard>
+          <AppShell>{children}</AppShell>
         </UserProvider>
       </body>
     </html>
