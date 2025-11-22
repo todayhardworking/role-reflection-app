@@ -5,9 +5,11 @@ export interface RoleSuggestion {
 
 export interface Reflection {
   id: string;
+  title: string;
   text: string;
   createdAt: string;
   updatedAt?: string;
+  rolesInvolved?: string[];
   suggestions?: Record<string, RoleSuggestion> | null;
 }
 
@@ -16,7 +18,11 @@ interface SaveReflectionResponse {
   id: string;
 }
 
-export async function saveReflection(text: string, uid: string): Promise<SaveReflectionResponse> {
+export async function saveReflection(
+  text: string,
+  uid: string,
+  title?: string,
+): Promise<SaveReflectionResponse> {
   const response = await fetch("/api/saveReflection", {
     method: "POST",
     headers: {
@@ -25,6 +31,7 @@ export async function saveReflection(text: string, uid: string): Promise<SaveRef
     body: JSON.stringify({
       uid,
       text,
+      title,
       createdAt: new Date().toISOString(),
     }),
   });
@@ -68,6 +75,7 @@ export async function updateReflection(
   reflectionId: string,
   uid: string,
   text: string,
+  title?: string,
 ): Promise<void> {
   const response = await fetch("/api/updateReflection", {
     method: "PUT",
@@ -78,6 +86,7 @@ export async function updateReflection(
       uid,
       reflectionId,
       text,
+      title,
     }),
   });
 

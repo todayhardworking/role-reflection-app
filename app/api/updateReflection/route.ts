@@ -4,7 +4,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 
 export async function PUT(request: Request) {
   try {
-    const { uid, reflectionId, text } = await request.json();
+    const { uid, reflectionId, text, title } = await request.json();
 
     if (!uid || !reflectionId || !text) {
       return NextResponse.json(
@@ -26,10 +26,24 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
     }
 
+    const trimmedText = text.trim();
+    const trimmedTitle = (title as string | undefined)?.trim() ?? "";
+
+    const derivedTitle = trimmedTitle ||
+      trimmedText
+        .split(/\r?\n/)
+        .map((line: string) => line.trim())
+        .filter(Boolean)
+        .slice(0, 2)
+        .join(" ") ||
+      "";
+
     await docRef.update({
-      text,
+      text: trimmedText,
+      title: derivedTitle,
       updatedAt: new Date().toISOString(),
       suggestions: admin.firestore.FieldValue.delete(),
+      rolesInvolved: admin.firestore.FieldValue.delete(),
     });
 
     return NextResponse.json({ success: true });

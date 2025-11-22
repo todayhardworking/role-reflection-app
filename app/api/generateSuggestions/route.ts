@@ -118,10 +118,14 @@ export async function POST(request: Request) {
       return acc;
     }, {});
 
+    const rolesInvolved = Object.entries(suggestions)
+      .filter(([, value]) => value.title !== "No suitable suggestions")
+      .map(([role]) => role);
+
     await adminDb
       .collection("reflections")
       .doc(reflectionId)
-      .set({ suggestions }, { merge: true });
+      .set({ suggestions, rolesInvolved }, { merge: true });
 
     return NextResponse.json({ suggestions });
   } catch (error) {
