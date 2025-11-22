@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { Timestamp } from "firebase-admin/firestore";
 
 export const dynamic = "force-dynamic";
 
@@ -21,19 +22,20 @@ export async function GET(request: NextRequest) {
     const reflections = snapshot.docs.map((doc) => {
       const data = doc.data() as {
         text: string;
-        createdAt?: FirebaseFirestore.Timestamp | string;
+        createdAt?: Timestamp | string;
         uid: string;
       };
 
-      const createdAtValue = data.createdAt;
-      const createdAt = createdAtValue
-        ? typeof (createdAtValue as FirebaseFirestore.Timestamp).toDate ===
-          "function"
-          ? (createdAtValue as FirebaseFirestore.Timestamp)
-              .toDate()
-              .toISOString()
-          : (createdAtValue as string)
-        : null;
+      const raw = data.createdAt;
+      let createdAt: string;
+
+      if (raw instanceof Timestamp) {
+        createdAt = raw.toDate().toISOString();
+      } else if (typeof raw === "string") {
+        createdAt = raw;
+      } else {
+        createdAt = new Date().toISOString();
+      }
 
       return {
         id: doc.id,
