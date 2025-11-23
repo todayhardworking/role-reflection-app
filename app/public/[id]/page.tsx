@@ -1,21 +1,65 @@
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { formatSmartTimestamp } from "@/lib/date";
 import { loadPublicReflection } from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
-export default async function PublicReflectionDetailPage({
+export default function PublicReflectionDetailPage({
   params,
 }: {
   params: { id: string };
 }) {
-  try {
-    const reflection = await loadPublicReflection(params.id);
-    const suggestionEntries = Object.entries(reflection.suggestions ?? {}).filter(
-      ([, value]) =>
-        !value?.suggestion?.toLowerCase?.().includes("not applicable") &&
-        !value?.title?.toLowerCase?.().includes("not applicable"),
+  const [reflection, setReflection] = useState<Awaited<ReturnType<typeof loadPublicReflection>> | null>(null);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    loadPublicReflection(params.id)
+      .then((data) => {
+        if (isMounted) {
+          setReflection(data);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (isMounted) {
+          setError(err);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [params.id]);
+
+  const suggestionEntries = useMemo(
+    () =>
+      Object.entries(reflection?.suggestions ?? {}).filter(
+        ([, value]) =>
+          !value?.suggestion?.toLowerCase?.().includes("not applicable") &&
+          !value?.title?.toLowerCase?.().includes("not applicable"),
+      ),
+    [reflection],
+  );
+
+  if (error || !reflection) {
+    return (
+      <section className="space-y-4 text-center">
+        <h1 className="text-2xl font-semibold text-slate-900">Public Reflection</h1>
+        <p className="text-sm text-slate-600">This reflection is unavailable or is no longer public.</p>
+        <Link
+          href="/public"
+          className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
+        >
+          Go back
+        </Link>
+      </section>
     );
+  }
 
     return (
       <section className="space-y-6">
@@ -77,19 +121,4 @@ export default async function PublicReflectionDetailPage({
         </div>
       </section>
     );
-  } catch (error) {
-    console.error(error);
-    return (
-      <section className="space-y-4 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900">Public Reflection</h1>
-        <p className="text-sm text-slate-600">This reflection is unavailable or is no longer public.</p>
-        <Link
-          href="/public"
-          className="inline-flex items-center justify-center rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800"
-        >
-          Go back
-        </Link>
-      </section>
-    );
-  }
 }

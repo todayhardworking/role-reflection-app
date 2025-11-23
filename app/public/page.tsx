@@ -1,3 +1,6 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatSmartTimestamp } from "@/lib/date";
 import { loadPublicReflections } from "@/lib/reflections";
@@ -13,9 +16,39 @@ function buildPreview(text: string) {
     .join(" ");
 }
 
-export default async function PublicReflectionsPage() {
-  try {
-    const reflections = await loadPublicReflections();
+export default function PublicReflectionsPage() {
+  const [reflections, setReflections] = useState<Awaited<ReturnType<typeof loadPublicReflections>>>([]);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    loadPublicReflections()
+      .then((data) => {
+        if (isMounted) {
+          setReflections(data);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        if (isMounted) {
+          setError(err);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  if (error) {
+    return (
+      <section className="space-y-4 text-center">
+        <h1 className="text-2xl font-semibold text-slate-900">Public Reflections</h1>
+        <p className="text-sm text-red-600">Unable to load public reflections right now.</p>
+      </section>
+    );
+  }
 
     return (
       <section className="space-y-8">
@@ -72,13 +105,4 @@ export default async function PublicReflectionsPage() {
         )}
       </section>
     );
-  } catch (error) {
-    console.error(error);
-    return (
-      <section className="space-y-4 text-center">
-        <h1 className="text-2xl font-semibold text-slate-900">Public Reflections</h1>
-        <p className="text-sm text-red-600">Unable to load public reflections right now.</p>
-      </section>
-    );
-  }
 }
