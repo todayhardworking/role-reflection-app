@@ -11,6 +11,33 @@ export interface Reflection {
   updatedAt?: string;
   rolesInvolved?: string[];
   suggestions?: Record<string, RoleSuggestion> | null;
+  isPublic: boolean;
+  isAnonymous: boolean;
+}
+
+export interface PublicReflection {
+  id: string;
+  title: string;
+  text: string;
+  createdAt: string;
+  rolesInvolved?: string[];
+  isAnonymous: boolean;
+  suggestions?: Record<string, RoleSuggestion> | null;
+}
+
+export function deriveTitleFromText(text: string, providedTitle?: string) {
+  const trimmedTitle = (providedTitle ?? "").trim();
+
+  if (trimmedTitle) {
+    return trimmedTitle;
+  }
+
+  return text
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .slice(0, 2)
+    .join(" ");
 }
 
 interface SaveReflectionResponse {
@@ -32,6 +59,8 @@ export async function saveReflection(
       uid,
       text,
       title,
+      isPublic: false,
+      isAnonymous: true,
       createdAt: new Date().toISOString(),
     }),
   });
@@ -112,4 +141,51 @@ export async function deleteReflection(reflectionId: string, uid: string): Promi
     const body = await response.json().catch(() => ({}));
     throw new Error(body?.error || "Failed to delete reflection");
   }
+}
+
+export async function updateReflectionVisibility(
+  reflectionId: string,
+  isPublic: boolean,
+  isAnonymous: boolean,
+  idToken?: string,
+): Promise<void> {
+  const response = await fetch("/api/reflection/updateVisibility", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(idToken ? { Authorization: `Bearer ${idToken}` } : {}),
+    },
+    body: JSON.stringify({ id: reflectionId, isPublic, isAnonymous }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to update visibility");
+  }
+}
+
+export async function loadPublicReflections(): Promise<PublicReflection[]> {
+  const response = await fetch("/api/publicReflections", { cache: "no-store" });
+
+  if (!response.ok) {
+    throw new Error("Failed to load public reflections");
+  }
+
+  const data = await response.json();
+  return data.reflections as PublicReflection[];
+}
+
+export async function loadPublicReflection(reflectionId: string): Promise<PublicReflection> {
+  const response = await fetch(
+    `/api/publicReflection?${new URLSearchParams({ id: reflectionId }).toString()}`,
+    { cache: "no-store" },
+  );
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to load public reflection");
+  }
+
+  const data = await response.json();
+  return data.reflection as PublicReflection;
 }

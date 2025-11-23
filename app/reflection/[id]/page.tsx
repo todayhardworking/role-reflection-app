@@ -2,7 +2,11 @@
 
 import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
-import { deleteReflection, loadReflection } from "@/lib/reflections";
+import {
+  deleteReflection,
+  loadReflection,
+  updateReflectionVisibility,
+} from "@/lib/reflections";
 import { generateSuggestions, loadSuggestions, type Suggestions } from "@/lib/suggestions";
 import { loadRoles } from "@/lib/roles";
 import { useParams, useRouter } from "next/navigation";
@@ -13,6 +17,8 @@ interface ReflectionDetailsState {
   text: string;
   createdAt: string;
   rolesInvolved?: string[];
+  isPublic: boolean;
+  isAnonymous: boolean;
 }
 
 function ReflectionDetailsPage() {
@@ -29,6 +35,8 @@ function ReflectionDetailsPage() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [visibilityError, setVisibilityError] = useState<string | null>(null);
+  const [isUpdatingVisibility, setIsUpdatingVisibility] = useState(false);
 
   const reflectionId = useMemo(() => params?.id, [params]);
 
@@ -51,6 +59,8 @@ function ReflectionDetailsPage() {
           text: reflectionResponse.text,
           createdAt: reflectionResponse.createdAt,
           rolesInvolved: reflectionResponse.rolesInvolved,
+          isPublic: reflectionResponse.isPublic,
+          isAnonymous: reflectionResponse.isAnonymous,
         });
         setRoles(rolesResponse);
         setSuggestions(suggestionsResponse);
@@ -111,6 +121,43 @@ function ReflectionDetailsPage() {
     }
   };
 
+  const handleVisibilityUpdate = async (
+    nextIsPublic: boolean,
+    nextIsAnonymous: boolean,
+  ) => {
+    if (!currentUser || !reflectionId) return;
+
+    const previous = reflection;
+
+    setVisibilityError(null);
+    setIsUpdatingVisibility(true);
+    setReflection((prev) =>
+      prev
+        ? {
+            ...prev,
+            isPublic: nextIsPublic,
+            isAnonymous: nextIsAnonymous,
+          }
+        : prev,
+    );
+
+    try {
+      const token = await currentUser.getIdToken();
+      await updateReflectionVisibility(
+        reflectionId,
+        nextIsPublic,
+        nextIsAnonymous,
+        token,
+      );
+    } catch (err) {
+      console.error(err);
+      setVisibilityError("Failed to update visibility. Please try again.");
+      setReflection(previous);
+    } finally {
+      setIsUpdatingVisibility(false);
+    }
+  };
+
   const orderedSuggestions = useMemo(() => {
     if (!suggestions || roles.length === 0)
       return [] as { role: string; data: Suggestions[string] }[];
@@ -124,6 +171,19 @@ function ReflectionDetailsPage() {
         },
     }));
   }, [roles, suggestions]);
+
+  const handlePublicToggle = (nextValue: boolean) => {
+    if (!reflection) return;
+
+    const nextIsPublic = nextValue;
+    const nextIsAnonymous = nextIsPublic ? reflection.isAnonymous : true;
+
+    handleVisibilityUpdate(nextIsPublic, nextIsAnonymous);
+  };
+
+  const handleIdentityChange = (nextIsAnonymous: boolean) => {
+    handleVisibilityUpdate(true, nextIsAnonymous);
+  };
 
   if (loading || !currentUser || isLoading) {
     return <p className="text-center text-slate-600">Loading reflection...</p>;
@@ -162,6 +222,62 @@ function ReflectionDetailsPage() {
         >
           Delete
         </button>
+      </div>
+
+      <div className="space-y-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm font-semibold text-slate-800">Make this reflection public</p>
+            <p className="text-xs text-slate-600">
+              Share this entry to the public feed. You can choose to stay anonymous.
+            </p>
+          </div>
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={reflection.isPublic}
+              onChange={(event) => handlePublicToggle(event.target.checked)}
+              disabled={isUpdatingVisibility}
+            />
+            <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all peer-checked:bg-slate-900 peer-checked:after:translate-x-full peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-slate-300" />
+          </label>
+        </div>
+
+        {reflection.isPublic && (
+          <div className="space-y-2 rounded-md border border-slate-200 bg-white p-3">
+            <p className="text-sm font-semibold text-slate-800">Identity</p>
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="visibility-identity"
+                  checked={reflection.isAnonymous}
+                  onChange={() => handleIdentityChange(true)}
+                  disabled={isUpdatingVisibility}
+                  className="h-4 w-4"
+                />
+                Post anonymously
+              </label>
+              <label className="flex items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="visibility-identity"
+                  checked={!reflection.isAnonymous}
+                  onChange={() => handleIdentityChange(false)}
+                  disabled={isUpdatingVisibility}
+                  className="h-4 w-4"
+                />
+                Show my identity
+              </label>
+            </div>
+          </div>
+        )}
+
+        {visibilityError && <p className="text-sm text-red-600">{visibilityError}</p>}
+        {isUpdatingVisibility && (
+          <p className="text-xs text-slate-500">Updating visibility...</p>
+        )}
       </div>
 
       {showDeleteConfirm && (

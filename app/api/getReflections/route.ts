@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { deriveTitleFromText } from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,8 @@ export async function GET(request: NextRequest) {
         title?: string;
         rolesInvolved?: string[];
         suggestions?: Record<string, unknown> | null;
+        isPublic?: boolean;
+        isAnonymous?: boolean;
       };
 
       const createdAtValue = data.createdAt;
@@ -38,13 +41,7 @@ export async function GET(request: NextRequest) {
           : (createdAtValue as string)
         : "";
 
-      const derivedTitle = (data.title ?? "").trim() ||
-        data.text
-          .split(/\r?\n/)
-          .map((line) => line.trim())
-          .filter(Boolean)
-          .slice(0, 2)
-          .join(" ");
+      const derivedTitle = deriveTitleFromText(data.text, data.title);
 
       return {
         id: doc.id,
@@ -54,6 +51,8 @@ export async function GET(request: NextRequest) {
         createdAt,
         rolesInvolved: data.rolesInvolved ?? [],
         suggestions: (data.suggestions as Record<string, unknown> | null) ?? null,
+        isPublic: data.isPublic ?? false,
+        isAnonymous: data.isAnonymous ?? true,
       };
     });
 
