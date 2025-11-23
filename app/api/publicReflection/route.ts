@@ -7,14 +7,13 @@ export const dynamic = "force-dynamic";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = request.nextUrl;
-    const reflectionId = searchParams.get("reflectionId");
-    const uid = searchParams.get("uid");
+    const id = searchParams.get("id");
 
-    if (!reflectionId) {
-      return NextResponse.json({ error: "Missing reflectionId" }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: "Missing id" }, { status: 400 });
     }
 
-    const doc = await adminDb.collection("reflections").doc(reflectionId).get();
+    const doc = await adminDb.collection("reflections").doc(id).get();
 
     if (!doc.exists) {
       return NextResponse.json({ error: "Reflection not found" }, { status: 404 });
@@ -22,17 +21,17 @@ export async function GET(request: NextRequest) {
 
     const data = doc.data() as {
       text?: string;
-      createdAt?: FirebaseFirestore.Timestamp | string;
-      uid?: string;
-      suggestions?: Record<string, RoleSuggestion>;
       title?: string;
+      createdAt?: FirebaseFirestore.Timestamp | string;
       rolesInvolved?: string[];
+      roles?: string[];
       isPublic?: boolean;
       isAnonymous?: boolean;
+      suggestions?: Record<string, RoleSuggestion> | null;
     };
 
-    if (uid && data?.uid && data.uid !== uid) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+    if (!data?.isPublic) {
+      return NextResponse.json({ error: "Reflection is not public" }, { status: 404 });
     }
 
     const createdAtValue = data?.createdAt;
@@ -42,23 +41,22 @@ export async function GET(request: NextRequest) {
         : (createdAtValue as string)
       : "";
 
-    const derivedTitle = deriveTitleFromText(data?.text ?? "", data?.title);
-
     return NextResponse.json({
       reflection: {
         id: doc.id,
+        title: deriveTitleFromText(data?.text ?? "", data?.title),
         text: data?.text ?? "",
         createdAt,
-        uid: data?.uid ?? "",
-        suggestions: data?.suggestions ?? null,
-        title: derivedTitle,
-        rolesInvolved: data?.rolesInvolved ?? [],
-        isPublic: data?.isPublic ?? false,
+        rolesInvolved: data?.rolesInvolved ?? data?.roles ?? [],
         isAnonymous: data?.isAnonymous ?? true,
+        suggestions: data?.suggestions ?? null,
       },
     });
   } catch (error) {
-    console.error("Error fetching reflection:", error);
-    return NextResponse.json({ error: "Failed to fetch reflection" }, { status: 500 });
+    console.error("Error loading public reflection:", error);
+    return NextResponse.json(
+      { error: "Failed to load public reflection" },
+      { status: 500 },
+    );
   }
 }
