@@ -85,6 +85,25 @@ function BookOpenIcon({ className }: IconProps) {
   );
 }
 
+function GlobeIcon({ className }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={className}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9-4.03-9-9-9Zm0 0c2.761 0 5 4.03 5 9s-2.239 9-5 9-5-4.03-5-9 2.239-9 5-9Zm0 0a8.966 8.966 0 0 0-6.364 2.636C7.788 7.788 9.825 9 12 9c2.175 0 4.212-1.212 6.364-3.364A8.966 8.966 0 0 0 12 3Zm0 12c-2.175 0-4.212 1.212-6.364 3.364A8.966 8.966 0 0 0 12 21a8.966 8.966 0 0 0 6.364-2.636C16.212 16.212 14.175 15 12 15Z"
+      />
+    </svg>
+  );
+}
+
 function ArrowRightOnRectangleIcon({ className }: IconProps) {
   return (
     <svg
@@ -156,6 +175,14 @@ export default function withAuth<P extends object>(
           action: () => {
             setIsDrawerOpen(false);
             router.push("/reflections");
+          },
+        },
+        {
+          label: "Public Reflections",
+          icon: GlobeIcon,
+          action: () => {
+            setIsDrawerOpen(false);
+            router.push("/public");
           },
         },
         {

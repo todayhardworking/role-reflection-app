@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { deriveTitleFromText } from "@/lib/reflections";
 
 export async function PUT(request: Request) {
   try {
@@ -27,16 +28,7 @@ export async function PUT(request: Request) {
     }
 
     const trimmedText = text.trim();
-    const trimmedTitle = (title as string | undefined)?.trim() ?? "";
-
-    const derivedTitle = trimmedTitle ||
-      trimmedText
-        .split(/\r?\n/)
-        .map((line: string) => line.trim())
-        .filter(Boolean)
-        .slice(0, 2)
-        .join(" ") ||
-      "";
+    const derivedTitle = deriveTitleFromText(trimmedText, title);
 
     await docRef.update({
       text: trimmedText,

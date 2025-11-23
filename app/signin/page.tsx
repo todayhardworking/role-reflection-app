@@ -95,6 +95,12 @@ export default function SignInPage() {
           Sign up
         </Link>
       </p>
+      <div className="border-t border-slate-200 pt-4 text-center text-sm text-slate-500">
+        <p>Just curious?</p>
+        <Link href="/public" className="font-semibold text-slate-700 hover:underline">
+          View public reflections
+        </Link>
+      </div>
     </section>
   );
 }
