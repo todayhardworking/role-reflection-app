@@ -4,8 +4,8 @@ import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import {
   formatWeekLabelFromWeekId,
-  type WeeklyAnalysis,
   type WeeklyReflection,
+  type WeeklySummary,
 } from "@/lib/weeklySummary";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
@@ -27,9 +27,10 @@ function formatDateLabel(value: string) {
 function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
   const { currentUser } = useUser();
   const [reflections, setReflections] = useState<WeeklyReflection[]>([]);
-  const [weeklyAnalysis, setWeeklyAnalysis] = useState<WeeklyAnalysis | null>(null);
+  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
 
   const { weekId } = params;
@@ -51,7 +52,7 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
     const fetchWeekDetails = async () => {
       try {
         setIsLoading(true);
-        setError(null);
+        setLoadError(null);
         const token = await currentUser.getIdToken();
         const response = await fetch(`/api/weeklyData?weekId=${encodeURIComponent(weekId)}`, {
           headers: {
@@ -67,11 +68,12 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
         const data = await response.json();
         if (!isMounted) return;
         setReflections(Array.isArray(data?.reflections) ? data.reflections : []);
-        setWeeklyAnalysis(data?.weeklyAnalysis ?? null);
+        setWeeklySummary(data?.weeklySummary ?? null);
+        setActionError(null);
       } catch (err) {
         console.error(err);
         if (isMounted) {
-          setError("Unable to load this week. Please try again later.");
+          setLoadError("Unable to load this week. Please try again later.");
         }
       } finally {
         if (isMounted) {
@@ -92,7 +94,7 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
 
     try {
       setIsGenerating(true);
-      setError(null);
+      setActionError(null);
       const token = await currentUser.getIdToken();
       const response = await fetch("/api/generateWeeklyAnalysis", {
         method: "POST",
@@ -109,10 +111,10 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
       }
 
       const data = await response.json();
-      setWeeklyAnalysis(data?.weeklyAnalysis ?? null);
+      setWeeklySummary(data?.weeklySummary ?? null);
     } catch (err) {
       console.error(err);
-      setError("Unable to generate weekly analysis. Please try again.");
+      setActionError(err instanceof Error ? err.message : "Unable to generate weekly analysis. Please try again.");
     } finally {
       setIsGenerating(false);
     }
@@ -148,8 +150,8 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
 
       {isLoading ? (
         <p className="text-sm text-slate-600">Loading weekly details...</p>
-      ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+      ) : loadError ? (
+        <p className="text-sm text-red-600">{loadError}</p>
       ) : (
         <div className="space-y-6">
           <div className="space-y-3">
@@ -189,7 +191,7 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
                   Get a focused 5-7 sentence analysis summarizing this week&apos;s reflections with actionable insights.
                 </p>
               </div>
-              {!weeklyAnalysis && (
+              {!weeklySummary && (
                 <button
                   type="button"
                   onClick={handleGenerateAnalysis}
@@ -200,13 +202,48 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
                 </button>
               )}
             </div>
-            {weeklyAnalysis ? (
-              <div className="space-y-2 rounded-md bg-white p-4 text-slate-800 shadow-sm">
-                <p className="text-sm leading-relaxed whitespace-pre-line">{weeklyAnalysis.summary}</p>
-                <p className="text-xs text-slate-500">Generated on {formatDateLabel(weeklyAnalysis.createdAt)}</p>
+            {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
+            {weeklySummary ? (
+              <div className="space-y-3 rounded-md bg-white p-4 text-slate-800 shadow-sm">
+                <div>
+                  <p className="text-sm leading-relaxed whitespace-pre-line">{weeklySummary.summary}</p>
+                  <p className="text-xs text-slate-500">Generated on {formatDateLabel(weeklySummary.createdAt)}</p>
+                </div>
+                {weeklySummary.wins.length ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">Wins</p>
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-800">
+                      {weeklySummary.wins.map((win, index) => (
+                        <li key={index}>{win}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {weeklySummary.challenges.length ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">Challenges</p>
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-800">
+                      {weeklySummary.challenges.map((challenge, index) => (
+                        <li key={index}>{challenge}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+                {weeklySummary.nextWeek.length ? (
+                  <div className="space-y-2">
+                    <p className="text-sm font-semibold text-slate-900">Next Week Focus</p>
+                    <ul className="list-disc space-y-1 pl-5 text-sm text-slate-800">
+                      {weeklySummary.nextWeek.map((item, index) => (
+                        <li key={index}>{item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
               </div>
             ) : !isGenerating ? (
-              <p className="text-sm text-slate-700">No AI analysis yet for this week.</p>
+              <p className="text-sm text-slate-700">
+                No AI analysis has been generated for this week yet.
+              </p>
             ) : null}
           </div>
         </div>
