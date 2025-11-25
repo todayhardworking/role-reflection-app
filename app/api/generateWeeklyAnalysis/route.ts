@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getWeekRangeFromWeekId, type WeeklyAnalysis } from "@/lib/weeklySummary";
+import { getWeekRangeFromWeekId, type WeeklySummary } from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +12,14 @@ function toIsoString(value: FirebaseFirestore.Timestamp | string | undefined) {
     return value.toDate().toISOString();
   }
   return "";
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 async function authenticate(request: NextRequest) {
@@ -40,12 +48,21 @@ async function callWeeklyAnalysisModel(reflections: Array<Record<string, unknown
     throw new Error("OPENAI_API_KEY environment variable is not set");
   }
 
-  const prompt = `You are an expert reflective coach. You will receive a JSON array of reflections with createdAt dates, text, and roles involved.
-Write a concise weekly analysis in 5-7 sentences.
-- Directly reference specific reflections (by describing what happened, not by ID).
-- Provide actionable insights and next steps.
-- Avoid bullet points; respond in paragraph form.
-- Keep the tone supportive, practical, and specific.`;
+  const prompt = `You are an expert reflective coach. You will receive a JSON array of user reflections for a week. Each item contains a date, text, roles, and any previous AI suggestions.
+
+Return ONLY valid JSON using this exact shape:
+{
+  "summary": "...",
+  "wins": ["..."],
+  "challenges": ["..."],
+  "nextWeek": ["..."]
+}
+
+Guidelines:
+- Provide a concise overall summary (5-8 sentences).
+- Include the most important wins and challenges as bullet points.
+- Focus nextWeek on clear, actionable steps.
+- Do not include any commentary outside the JSON object.`;
 
   const response = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -66,6 +83,7 @@ Write a concise weekly analysis in 5-7 sentences.
           content: JSON.stringify(reflections),
         },
       ],
+      response_format: { type: "json_object" },
     }),
   });
 
@@ -79,7 +97,47 @@ Write a concise weekly analysis in 5-7 sentences.
   };
 
   const content = data.choices?.[0]?.message?.content ?? "";
-  return typeof content === "string" ? content.trim() : "";
+  let parsed: Record<string, unknown> = {};
+
+  if (typeof content === "string" && content.trim()) {
+    try {
+      parsed = JSON.parse(content);
+    } catch (error) {
+      console.error("Failed to parse weekly analysis model response", error);
+      parsed = {};
+    }
+  }
+
+  return parsed as {
+    summary?: unknown;
+    wins?: unknown;
+    challenges?: unknown;
+    nextWeek?: unknown;
+  };
+}
+
+function buildWeeklySummaryObject(
+  weekId: string,
+  aiResult: {
+    summary?: unknown;
+    wins?: unknown;
+    challenges?: unknown;
+    nextWeek?: unknown;
+  },
+): WeeklySummary {
+  const summaryText = typeof aiResult.summary === "string" ? aiResult.summary : "";
+  const wins = normalizeStringArray(aiResult.wins);
+  const challenges = normalizeStringArray(aiResult.challenges);
+  const nextWeek = normalizeStringArray(aiResult.nextWeek);
+
+  return {
+    weekId,
+    summary: summaryText,
+    wins,
+    challenges,
+    nextWeek,
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export async function POST(request: NextRequest) {
@@ -138,25 +196,23 @@ export async function POST(request: NextRequest) {
     });
 
     if (!reflections.length) {
-      return NextResponse.json({ error: "No reflections found for this week" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No reflections found for this week. Cannot generate analysis." },
+        { status: 422 },
+      );
     }
 
-    const summary = await callWeeklyAnalysisModel(reflections);
-
-    const weeklyAnalysis: WeeklyAnalysis = {
-      weekId,
-      summary,
-      createdAt: new Date().toISOString(),
-    };
+    const aiResult = await callWeeklyAnalysisModel(reflections);
+    const weeklySummary = buildWeeklySummaryObject(weekId, aiResult);
 
     await adminDb
-      .collection("weeklyAnalysis")
+      .collection("weeklySummaries")
       .doc(decoded.uid)
       .collection("weeks")
       .doc(weekId)
-      .set({ ...weeklyAnalysis, uid: decoded.uid });
+      .set({ ...weeklySummary, uid: decoded.uid });
 
-    return NextResponse.json({ weeklyAnalysis });
+    return NextResponse.json({ weeklySummary });
   } catch (error) {
     console.error("Failed to generate weekly analysis", error);
     return NextResponse.json({ error: "Unable to generate weekly analysis" }, { status: 500 });

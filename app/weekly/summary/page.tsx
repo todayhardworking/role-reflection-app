@@ -16,7 +16,8 @@ function WeeklySummaryPage() {
   const { currentUser } = useUser();
   const [weeks, setWeeks] = useState<WeeklyHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [generatingWeekId, setGeneratingWeekId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -27,7 +28,8 @@ function WeeklySummaryPage() {
     const fetchWeeks = async () => {
       try {
         setIsLoading(true);
-        setError(null);
+        setLoadError(null);
+        setActionError(null);
         const token = await currentUser.getIdToken();
         const response = await fetch("/api/weeklyData", {
           headers: {
@@ -46,7 +48,7 @@ function WeeklySummaryPage() {
       } catch (err) {
         console.error(err);
         if (isMounted) {
-          setError("Unable to load weekly history. Please try again later.");
+          setLoadError("Unable to load weekly history. Please try again later.");
         }
       } finally {
         if (isMounted) {
@@ -67,7 +69,7 @@ function WeeklySummaryPage() {
 
     try {
       setGeneratingWeekId(weekId);
-      setError(null);
+      setActionError(null);
       const token = await currentUser.getIdToken();
       const response = await fetch("/api/generateWeeklyAnalysis", {
         method: "POST",
@@ -91,11 +93,11 @@ function WeeklySummaryPage() {
                 hasAnalysis: true,
               }
             : week,
-        ),
+          ),
       );
     } catch (err) {
       console.error(err);
-      setError("Unable to generate weekly analysis. Please try again.");
+      setActionError(err instanceof Error ? err.message : "Unable to generate weekly analysis. Please try again.");
     } finally {
       setGeneratingWeekId(null);
     }
@@ -123,14 +125,15 @@ function WeeklySummaryPage() {
 
       {isLoading ? (
         <p className="text-sm text-slate-600">Loading weekly history...</p>
-      ) : error ? (
-        <p className="text-sm text-red-600">{error}</p>
+      ) : loadError ? (
+        <p className="text-sm text-red-600">{loadError}</p>
       ) : weeks.length === 0 ? (
         <div className="space-y-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
           <p>No weekly records yet. Create reflections to see your weekly history.</p>
         </div>
       ) : (
         <div className="space-y-4">
+          {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
           {weeks.map((week) => (
             <div key={week.weekId} className="flex flex-col gap-4 rounded-lg border border-slate-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">

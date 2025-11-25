@@ -5,8 +5,8 @@ import {
   formatWeekLabelFromWeekId,
   getWeekIdFromDate,
   getWeekRangeFromWeekId,
-  type WeeklyAnalysis,
   type WeeklyReflection,
+  type WeeklySummary,
 } from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +18,14 @@ function toIsoString(value: FirebaseFirestore.Timestamp | string | undefined) {
     return value.toDate().toISOString();
   }
   return "";
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 async function authenticate(request: NextRequest) {
@@ -38,18 +46,26 @@ async function authenticate(request: NextRequest) {
   }
 }
 
-async function fetchWeeklyAnalysis(uid: string, weekId: string): Promise<WeeklyAnalysis | null> {
-  const analysisDoc = await adminDb.collection("weeklyAnalysis").doc(uid).collection("weeks").doc(weekId).get();
+async function fetchWeeklySummary(uid: string, weekId: string): Promise<WeeklySummary | null> {
+  const summaryDoc = await adminDb
+    .collection("weeklySummaries")
+    .doc(uid)
+    .collection("weeks")
+    .doc(weekId)
+    .get();
 
-  if (!analysisDoc.exists) {
+  if (!summaryDoc.exists) {
     return null;
   }
 
-  const data = analysisDoc.data() as Partial<WeeklyAnalysis> | undefined;
+  const data = summaryDoc.data() as Partial<WeeklySummary> | undefined;
 
   return {
     weekId,
     summary: typeof data?.summary === "string" ? data.summary : "",
+    wins: normalizeStringArray(data?.wins),
+    challenges: normalizeStringArray(data?.challenges),
+    nextWeek: normalizeStringArray(data?.nextWeek),
     createdAt: toIsoString(data?.createdAt),
   };
 }
@@ -86,11 +102,15 @@ async function getWeekDetail(uid: string, weekId: string) {
     };
   });
 
-  const weeklyAnalysis = await fetchWeeklyAnalysis(uid, weekId);
-
   return {
+    week: {
+      weekId,
+      startDate: startIso,
+      endDate: endIso,
+      reflectionCount: reflections.length,
+    },
     reflections,
-    weeklyAnalysis,
+    weeklySummary: await fetchWeeklySummary(uid, weekId),
     weekLabel: formatWeekLabelFromWeekId(weekId),
   };
 }
@@ -133,23 +153,23 @@ async function getWeeklyHistory(uid: string) {
     }
   });
 
-  const analysisResults = await Promise.all(
+  const summaryResults = await Promise.all(
     Array.from(weekMap.keys()).map(async (weekId) => ({
       weekId,
-      analysis: await fetchWeeklyAnalysis(uid, weekId),
+      summary: await fetchWeeklySummary(uid, weekId),
     })),
   );
 
-  const analysisMap = new Map<string, WeeklyAnalysis | null>();
-  analysisResults.forEach((entry) => {
-    analysisMap.set(entry.weekId, entry.analysis);
+  const summaryMap = new Map<string, WeeklySummary | null>();
+  summaryResults.forEach((entry) => {
+    summaryMap.set(entry.weekId, entry.summary);
   });
 
   const weeks = Array.from(weekMap.entries())
     .map(([weekId, meta]) => ({
       weekId,
       reflectionCount: meta.reflectionCount,
-      hasAnalysis: Boolean(analysisMap.get(weekId)),
+      hasAnalysis: Boolean(summaryMap.get(weekId)),
       weekLabel: formatWeekLabelFromWeekId(weekId),
       startISO: meta.startISO,
     }))
