@@ -3,7 +3,8 @@
 import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getWeekCompletionInfo } from "@/lib/weeklySummary";
 
 type WeeklyHistoryEntry = {
   weekId: string;
@@ -154,14 +155,11 @@ function WeeklySummaryPage() {
                   View This Week
                 </Link>
                 {!week.hasAnalysis && (
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateAnalysis(week.weekId)}
-                    disabled={generatingWeekId === week.weekId}
-                    className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-500"
-                  >
-                    {generatingWeekId === week.weekId ? "Generating..." : "Generate AI Analysis"}
-                  </button>
+                  <WeekAnalysisAction
+                    isWeekComplete={getWeekCompletionInfo(week.weekId).isComplete}
+                    isGenerating={generatingWeekId === week.weekId}
+                    onGenerate={() => handleGenerateAnalysis(week.weekId)}
+                  />
                 )}
               </div>
             </div>
@@ -169,6 +167,35 @@ function WeeklySummaryPage() {
         </div>
       )}
     </section>
+  );
+}
+
+type WeekAnalysisActionProps = {
+  isWeekComplete: boolean;
+  isGenerating: boolean;
+  onGenerate: () => void;
+};
+
+function WeekAnalysisAction({ isWeekComplete, isGenerating, onGenerate }: WeekAnalysisActionProps) {
+  const disabled = isGenerating || !isWeekComplete;
+
+  const buttonLabel = useMemo(() => {
+    if (isGenerating) return "Generating...";
+    return "Generate AI Analysis";
+  }, [isGenerating]);
+
+  return (
+    <div className="flex flex-col gap-1 sm:items-end">
+      {!isWeekComplete ? <p className="text-xs font-semibold text-amber-700">Week still in progress</p> : null}
+      <button
+        type="button"
+        onClick={onGenerate}
+        disabled={disabled}
+        className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-500"
+      >
+        {buttonLabel}
+      </button>
+    </div>
   );
 }
 

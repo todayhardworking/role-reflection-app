@@ -26,6 +26,21 @@ function toLocalDate(date = new Date(), timeZone = "Asia/Kuala_Lumpur") {
   return new Date(localizedString);
 }
 
+export function getWeekCompletionInfo(
+  weekId: string,
+  options?: { timeZone?: string; currentDate?: Date },
+): { weekEnd: Date; isComplete: boolean } {
+  const timeZone = options?.timeZone ?? "Asia/Kuala_Lumpur";
+  const currentDate = options?.currentDate ?? new Date();
+  const { inclusiveEnd: weekEnd } = getWeekRangeFromWeekId(weekId, timeZone);
+  const now = toLocalDate(currentDate, timeZone);
+
+  return {
+    weekEnd,
+    isComplete: now.getTime() >= weekEnd.getTime(),
+  };
+}
+
 export function getCurrentWeekId(date = new Date(), timeZone = "Asia/Kuala_Lumpur") {
   const localDate = toLocalDate(date, timeZone);
   const target = new Date(Date.UTC(localDate.getFullYear(), localDate.getMonth(), localDate.getDate()));

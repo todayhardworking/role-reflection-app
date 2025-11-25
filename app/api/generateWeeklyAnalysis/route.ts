@@ -1,7 +1,11 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getWeekRangeFromWeekId, type WeeklySummary } from "@/lib/weeklySummary";
+import {
+  getWeekCompletionInfo,
+  getWeekRangeFromWeekId,
+  type WeeklySummary,
+} from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
 
@@ -163,6 +167,15 @@ export async function POST(request: NextRequest) {
     } catch (rangeError) {
       console.error(`Invalid weekId provided for weekly analysis: ${weekId}`, rangeError);
       return NextResponse.json({ error: "Invalid weekId" }, { status: 400 });
+    }
+
+    const { isComplete } = getWeekCompletionInfo(weekId);
+
+    if (!isComplete) {
+      return NextResponse.json(
+        { error: "Weekly analysis is only available after the full week is completed." },
+        { status: 400 },
+      );
     }
 
     const weekStartISO = start.toISOString();
