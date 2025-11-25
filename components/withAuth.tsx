@@ -85,6 +85,25 @@ function BookOpenIcon({ className }: IconProps) {
   );
 }
 
+function CalendarIcon({ className }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={className}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M6.75 3.75V6M17.25 3.75V6M4.5 9.75h15m-12.75 9.75h10.5A2.25 2.25 0 0 0 19.5 17.25v-9a2.25 2.25 0 0 0-2.25-2.25h-10.5A2.25 2.25 0 0 0 4.5 8.25v9a2.25 2.25 0 0 0 2.25 2.25Z"
+      />
+    </svg>
+  );
+}
+
 function GlobeIcon({ className }: IconProps) {
   return (
     <svg
@@ -175,6 +194,14 @@ export default function withAuth<P extends object>(
           action: () => {
             setIsDrawerOpen(false);
             router.push("/reflections");
+          },
+        },
+        {
+          label: "Weekly Summary",
+          icon: CalendarIcon,
+          action: () => {
+            setIsDrawerOpen(false);
+            router.push("/weekly-report");
           },
         },
         {
