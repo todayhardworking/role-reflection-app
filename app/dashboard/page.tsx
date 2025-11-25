@@ -2,10 +2,9 @@
 
 import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
-import { formatWeekLabel, type WeeklySummary } from "@/lib/weeklySummary";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 interface MenuCard {
   title: string;
@@ -23,13 +22,6 @@ function DashboardPage() {
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [weeklySummary, setWeeklySummary] = useState<WeeklySummary | null>(null);
-  const [isLoadingWeekly, setIsLoadingWeekly] = useState(true);
-  const [weeklyError, setWeeklyError] = useState<string | null>(null);
-  const [isGeneratingWeekly, setIsGeneratingWeekly] = useState(false);
-
-  const weekLabel = useMemo(() => formatWeekLabel(), []);
-
   const menuCards: MenuCard[] = useMemo(
     () => [
       {
@@ -93,79 +85,6 @@ function DashboardPage() {
     }
   };
 
-  useEffect(() => {
-    if (!currentUser) return;
-
-    let isMounted = true;
-
-    const fetchWeeklySummary = async () => {
-      try {
-        setIsLoadingWeekly(true);
-        setWeeklyError(null);
-        const token = await currentUser.getIdToken();
-        const response = await fetch("/api/weeklySummary", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-
-        if (!response.ok) {
-          const body = await response.json().catch(() => ({}));
-          throw new Error(body?.error || "Failed to load weekly summary");
-        }
-
-        const data = await response.json();
-        if (!isMounted) return;
-        setWeeklySummary(data.weeklySummary ?? null);
-      } catch (err) {
-        console.error(err);
-        if (isMounted) {
-          setWeeklyError("Unable to load weekly summary.");
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoadingWeekly(false);
-        }
-      }
-    };
-
-    fetchWeeklySummary();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser]);
-
-  const handleGenerateWeeklySummary = async () => {
-    if (!currentUser) return;
-
-    try {
-      setIsGeneratingWeekly(true);
-      setWeeklyError(null);
-      const token = await currentUser.getIdToken();
-      const response = await fetch("/api/weeklySummary", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const body = await response.json().catch(() => ({}));
-        throw new Error(body?.error || "Failed to generate weekly summary");
-      }
-
-      const data = await response.json();
-      setWeeklySummary(data.weeklySummary ?? null);
-    } catch (err) {
-      console.error(err);
-      setWeeklyError("Unable to generate weekly summary. Please try again.");
-    } finally {
-      setIsGeneratingWeekly(false);
-      setIsLoadingWeekly(false);
-    }
-  };
-
   const closeModals = () => {
     setShowInitialDeleteConfirm(false);
     setShowFinalDeleteConfirm(false);
@@ -192,85 +111,6 @@ function DashboardPage() {
           Sign Out
         </button>
       </header>
-
-      <div className="space-y-3 rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-slate-900">Weekly Summary</p>
-            <p className="text-sm text-slate-600">{weekLabel}</p>
-          </div>
-          {weeklySummary ? (
-            <Link
-              href="/weekly/current"
-              className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-200"
-            >
-              View Full Weekly Report
-            </Link>
-          ) : null}
-        </div>
-
-        {isLoadingWeekly ? (
-          <p className="text-sm text-slate-600">Loading weekly summary...</p>
-        ) : weeklyError ? (
-          <p className="text-sm text-red-600">{weeklyError}</p>
-        ) : weeklySummary ? (
-          <div className="space-y-3">
-            <p className="text-slate-700 line-clamp-2">
-              {weeklySummary.summary || "Your AI summary will appear here once generated."}
-            </p>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-sm font-semibold text-slate-800">Wins</p>
-                <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                  {(weeklySummary.wins.slice(0, 2).length
-                    ? weeklySummary.wins.slice(0, 2)
-                    : ["No wins listed yet."]
-                  ).map((win, index) => (
-                    <li key={`win-${index}`} className="list-disc list-inside">
-                      {win}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="rounded-md bg-slate-50 p-3">
-                <p className="text-sm font-semibold text-slate-800">Challenges</p>
-                <ul className="mt-2 space-y-1 text-sm text-slate-700">
-                  {(weeklySummary.challenges.slice(0, 2).length
-                    ? weeklySummary.challenges.slice(0, 2)
-                    : ["No challenges listed yet."]
-                  ).map((challenge, index) => (
-                    <li key={`challenge-${index}`} className="list-disc list-inside">
-                      {challenge}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-
-            <div className="flex justify-end">
-              <Link
-                href="/weekly/current"
-                className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
-              >
-                View Full Weekly Report
-              </Link>
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-700">No weekly summary for this week yet.</p>
-            <button
-              type="button"
-              onClick={handleGenerateWeeklySummary}
-              disabled={isGeneratingWeekly}
-              className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-500"
-            >
-              {isGeneratingWeekly ? "Generating..." : "Generate Weekly Summary"}
-            </button>
-          </div>
-        )}
-      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {menuCards.map((card) => {

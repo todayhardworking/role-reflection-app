@@ -116,12 +116,6 @@ function WeeklySummaryPage() {
           <h1 className="text-2xl font-semibold text-slate-900">Weekly History</h1>
           <p className="text-sm text-slate-600">Review every week that has reflections, newest first.</p>
         </div>
-        <Link
-          href="/weekly/current"
-          className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
-        >
-          Current Week Summary
-        </Link>
       </header>
 
       {isLoading ? (
