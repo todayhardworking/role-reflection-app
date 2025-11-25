@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { deriveTitleFromText } from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -40,69 +39,46 @@ export async function GET(request: NextRequest) {
       likedEntries.map((entry) => adminDb.collection("reflections").doc(entry.reflectionId).get()),
     );
 
-    const reflectionsById = new Map(
-      reflectionSnapshots
-        .filter((snapshot) => snapshot.exists)
-        .map((snapshot) => {
-          const data = snapshot.data() as {
-            text?: string;
-            title?: string;
-            createdAt?: FirebaseFirestore.Timestamp | string;
-            rolesInvolved?: string[];
-            roles?: string[];
-            isAnonymous?: boolean;
-            isPublic?: boolean;
-            suggestions?: Record<string, unknown> | null;
-            likes?: number;
-            likedBy?: Record<string, boolean>;
-          };
+    const likedAtById = new Map(likedEntries.map((entry) => [entry.reflectionId, entry.likedAt]));
 
-          const createdAt = toISOString(data?.createdAt);
+    const reflections = reflectionSnapshots
+      .map((snapshot) => {
+        if (!snapshot.exists) return null;
 
-          return [
-            snapshot.id,
-            {
-              id: snapshot.id,
-              title: deriveTitleFromText(data?.text ?? "", data?.title),
-              text: data?.text ?? "",
-              createdAt,
-              rolesInvolved: data?.rolesInvolved ?? data?.roles ?? [],
-              isAnonymous: data?.isAnonymous ?? true,
-              isPublic: data?.isPublic ?? false,
-              suggestions: (data?.suggestions as Record<string, unknown> | null) ?? null,
-              likes: typeof data?.likes === "number" ? data.likes : 0,
-              likedBy: data?.likedBy ?? {},
-            },
-          ];
-        }),
-    );
-
-    const reflections = likedEntries
-      .map((entry) => {
-        const reflection = reflectionsById.get(entry.reflectionId);
-        if (!reflection || !reflection.isPublic) return null;
-
-        return {
-          ...reflection,
-          likedAt: entry.likedAt || new Date(0).toISOString(),
-        };
-      })
-      .filter(
-        (
-          value,
-        ): value is {
-          id: string;
-          title: string;
-          text: string;
-          createdAt: string;
-          rolesInvolved: string[];
-          isAnonymous: boolean;
-          suggestions: Record<string, unknown> | null;
-          likes: number;
+        const data = (snapshot.data() ?? {}) as {
+          id?: string;
+          title?: string;
+          text?: string;
+          createdAt?: FirebaseFirestore.Timestamp | string;
+          rolesInvolved?: string[];
+          roles?: string[];
+          isAnonymous?: boolean;
+          isPublic?: boolean;
+          suggestions?: Record<string, unknown> | null;
+          likes?: number;
           likedBy?: Record<string, boolean>;
-          likedAt: string;
-        } => Boolean(value),
-      );
+        };
+
+        const createdAtValue = toISOString(data.createdAt);
+        const reflection = {
+          id: data.id ?? snapshot.id,
+          title: data.title ?? "",
+          text: data.text ?? "",
+          createdAt: createdAtValue || new Date().toISOString(),
+          rolesInvolved: data.rolesInvolved ?? [],
+          isAnonymous: data.isAnonymous ?? false,
+          isPublic: data.isPublic ?? false,
+          suggestions: data.suggestions ?? null,
+          likes: data.likes ?? 0,
+          likedBy: data.likedBy ?? {},
+          likedAt: likedAtById.get(snapshot.id) ?? new Date(0).toISOString(),
+        };
+
+        if (!reflection.isPublic) return null;
+
+        return reflection;
+      })
+      .filter((value): value is NonNullable<typeof value> => Boolean(value));
 
     return NextResponse.json({ reflections });
   } catch (error) {
