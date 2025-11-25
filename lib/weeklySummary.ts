@@ -7,6 +7,20 @@ export interface WeeklySummary {
   createdAt: string;
 }
 
+export interface WeeklyAnalysis {
+  weekId: string;
+  summary: string;
+  createdAt: string;
+}
+
+export interface WeeklyReflection {
+  id: string;
+  text: string;
+  createdAt: string;
+  rolesInvolved: string[];
+  title?: string;
+}
+
 function toLocalDate(date = new Date(), timeZone = "Asia/Kuala_Lumpur") {
   const localizedString = date.toLocaleString("en-US", { timeZone });
   return new Date(localizedString);
@@ -37,6 +51,56 @@ export function getCurrentWeekRange(date = new Date(), timeZone = "Asia/Kuala_Lu
   end.setHours(23, 59, 59, 999);
 
   return { start, end };
+}
+
+export function getWeekRangeFromWeekId(weekId: string, timeZone = "Asia/Kuala_Lumpur") {
+  const match = /^([0-9]{4})-W([0-9]{2})$/.exec(weekId);
+
+  if (!match) {
+    throw new Error(`Invalid weekId: ${weekId}`);
+  }
+
+  const [, yearString, weekString] = match;
+  const year = Number.parseInt(yearString, 10);
+  const weekNumber = Number.parseInt(weekString, 10);
+
+  const januaryFourth = new Date(Date.UTC(year, 0, 4));
+  const januaryFourthDay = januaryFourth.getUTCDay() || 7;
+  const weekStart = new Date(januaryFourth);
+  weekStart.setUTCDate(januaryFourth.getUTCDate() - (januaryFourthDay - 1) + (weekNumber - 1) * 7);
+
+  const start = toLocalDate(weekStart, timeZone);
+  start.setHours(0, 0, 0, 0);
+
+  const endExclusive = new Date(start);
+  endExclusive.setDate(start.getDate() + 7);
+  endExclusive.setHours(0, 0, 0, 0);
+
+  const inclusiveEnd = new Date(endExclusive);
+  inclusiveEnd.setDate(inclusiveEnd.getDate() - 1);
+  inclusiveEnd.setHours(23, 59, 59, 999);
+
+  return { start, endExclusive, inclusiveEnd };
+}
+
+export function getWeekIdFromDate(dateInput: string | Date, timeZone = "Asia/Kuala_Lumpur") {
+  const date = typeof dateInput === "string" ? new Date(dateInput) : dateInput;
+  return getCurrentWeekId(date, timeZone);
+}
+
+export function formatWeekLabelFromWeekId(weekId: string, timeZone = "Asia/Kuala_Lumpur") {
+  const { start, inclusiveEnd } = getWeekRangeFromWeekId(weekId, timeZone);
+  const weekNumber = weekId.split("-W")[1] ?? "";
+
+  const startMonth = start.toLocaleString(undefined, { month: "short" });
+  const endMonth = inclusiveEnd.toLocaleString(undefined, { month: "short" });
+
+  const startLabel = `${start.getDate()}${startMonth !== endMonth ? ` ${startMonth}` : ""}`;
+  const endLabel = `${inclusiveEnd.getDate()} ${endMonth}`;
+
+  const rangeLabel = startMonth === endMonth ? `${start.getDate()}–${inclusiveEnd.getDate()} ${endMonth}` : `${startLabel}–${endLabel}`;
+
+  return `Week ${Number.parseInt(weekNumber, 10)} (${rangeLabel})`;
 }
 
 export function formatWeekLabel(date = new Date(), timeZone = "Asia/Kuala_Lumpur") {
