@@ -4,6 +4,7 @@ import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import {
   formatWeekLabelFromWeekId,
+  getWeekCompletionInfo,
   type WeeklyReflection,
   type WeeklySummary,
 } from "@/lib/weeklySummary";
@@ -43,6 +44,24 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
       return weekId;
     }
   }, [weekId]);
+
+  const { isComplete: isWeekComplete, weekEnd } = useMemo(() => {
+    try {
+      return getWeekCompletionInfo(weekId);
+    } catch (error) {
+      console.error(error);
+      return { isComplete: true, weekEnd: new Date() };
+    }
+  }, [weekId]);
+  const weekEndLabel = useMemo(
+    () =>
+      weekEnd.toLocaleDateString(undefined, {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }),
+    [weekEnd],
+  );
 
   useEffect(() => {
     if (!currentUser) return;
@@ -161,16 +180,24 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
                 Get a focused 5-7 sentence analysis summarizing this week&apos;s reflections with actionable insights.
               </p>
             </div>
-            {!weeklySummary && (
-              <button
-                type="button"
-                onClick={handleGenerateAnalysis}
-                disabled={isGenerating}
-                className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-500"
-              >
-                {isGenerating ? "Generating..." : "Generate Weekly AI Analysis"}
-              </button>
-            )}
+            {!weeklySummary &&
+              (isWeekComplete ? (
+                <button
+                  type="button"
+                  onClick={handleGenerateAnalysis}
+                  disabled={isGenerating}
+                  className="inline-flex items-center justify-center rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300 disabled:cursor-not-allowed disabled:bg-slate-500"
+                >
+                  {isGenerating ? "Generating..." : "Generate Weekly AI Analysis"}
+                </button>
+              ) : (
+                <p className="flex items-center gap-2 text-sm text-amber-700">
+                  <span aria-hidden>⚠️</span>
+                  <span>
+                    Weekly AI analysis will be available after this week is completed. (Ends on Sunday, {weekEndLabel})
+                  </span>
+                </p>
+              ))}
             {actionError ? <p className="text-sm text-red-600">{actionError}</p> : null}
             {weeklySummary ? (
               <div className="space-y-3 rounded-md bg-white p-4 text-slate-800 shadow-sm">
