@@ -197,19 +197,19 @@ export default function withAuth<P extends object>(
           },
         },
         {
-          label: "Current Week Summary",
+          label: "Weekly History",
           icon: CalendarIcon,
           action: () => {
             setIsDrawerOpen(false);
-            router.push("/weekly/current");
+            router.push("/weekly/summary");
           },
         },
         {
-          label: "Weekly History",
+          label: "Public Reflections",
           icon: GlobeIcon,
           action: () => {
             setIsDrawerOpen(false);
-            router.push("/weekly/summary");
+            router.push("/public");
           },
         },
         {

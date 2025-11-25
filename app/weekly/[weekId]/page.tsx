@@ -158,12 +158,6 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
           >
             Back to Weekly History
           </Link>
-          <Link
-            href="/weekly/current"
-            className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-300"
-          >
-            Current Week Summary
-          </Link>
         </div>
       </header>
 
