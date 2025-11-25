@@ -1,7 +1,7 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getCurrentWeekId, getCurrentWeekRange, type WeeklySummary } from "@/lib/weeklySummary";
+import { getCurrentWeekId, getWeekRangeFromWeekId, type WeeklySummary } from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +54,7 @@ function sanitizeWeeklySummary(data: Partial<WeeklySummary> | undefined, fallbac
     wins: normalizeStringArray(data?.wins),
     challenges: normalizeStringArray(data?.challenges),
     nextWeek: normalizeStringArray(data?.nextWeek),
-    createdAt: typeof data?.createdAt === "string" ? data.createdAt : "",
+    createdAt: toIsoString(data?.createdAt),
   };
 }
 
@@ -179,15 +179,15 @@ export async function POST(request: NextRequest) {
 
   const uid = decoded.uid;
   const weekId = getCurrentWeekId();
-  const { start, end } = getCurrentWeekRange();
-  const startTimestamp = admin.firestore.Timestamp.fromDate(start);
-  const endTimestamp = admin.firestore.Timestamp.fromDate(end);
+  const { start, endExclusive } = getWeekRangeFromWeekId(weekId);
+  const weekStartISO = start.toISOString();
+  const weekEndISO = endExclusive.toISOString();
 
   const reflectionsSnapshot = await adminDb
     .collection("reflections")
     .where("uid", "==", uid)
-    .where("createdAt", ">=", startTimestamp)
-    .where("createdAt", "<=", endTimestamp)
+    .where("createdAt", ">=", weekStartISO)
+    .where("createdAt", "<", weekEndISO)
     .orderBy("createdAt", "asc")
     .get();
 
