@@ -20,6 +20,8 @@ export async function GET() {
         rolesInvolved?: string[];
         roles?: string[];
         isAnonymous?: boolean;
+        likes?: number;
+        likedBy?: Record<string, boolean>;
       };
 
       const createdAtValue = data?.createdAt;
@@ -36,6 +38,8 @@ export async function GET() {
         createdAt,
         rolesInvolved: data?.rolesInvolved ?? data?.roles ?? [],
         isAnonymous: data?.isAnonymous ?? true,
+        likes: typeof data?.likes === "number" ? data.likes : 0,
+        likedBy: data?.likedBy ?? {},
       };
     });
 

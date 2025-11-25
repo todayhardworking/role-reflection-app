@@ -28,6 +28,8 @@ export async function GET(request: NextRequest) {
       isPublic?: boolean;
       isAnonymous?: boolean;
       suggestions?: Record<string, RoleSuggestion> | null;
+      likes?: number;
+      likedBy?: Record<string, boolean>;
     };
 
     if (!data?.isPublic) {
@@ -50,6 +52,8 @@ export async function GET(request: NextRequest) {
         rolesInvolved: data?.rolesInvolved ?? data?.roles ?? [],
         isAnonymous: data?.isAnonymous ?? true,
         suggestions: data?.suggestions ?? null,
+        likes: typeof data?.likes === "number" ? data.likes : 0,
+        likedBy: data?.likedBy ?? {},
       },
     });
   } catch (error) {

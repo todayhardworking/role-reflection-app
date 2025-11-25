@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatSmartTimestamp } from "@/lib/date";
+import { useUser } from "@/context/UserContext";
 import { PublicReflection } from "@/lib/reflections";
+import LikeButton from "@/components/LikeButton";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,7 @@ export default function PublicPage() {
   const [reflections, setReflections] = useState<PublicReflection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { currentUser } = useUser();
 
   useEffect(() => {
     const load = async () => {
@@ -73,12 +76,11 @@ export default function PublicPage() {
             const preview = buildPreview(reflection.text);
 
             return (
-              <Link
+              <article
                 key={reflection.id}
-                href={`/public/${reflection.id}`}
                 className="flex h-full flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:shadow-md"
               >
-                <div className="space-y-2">
+                <Link href={`/public/${reflection.id}`} className="space-y-2 block">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-semibold uppercase text-slate-500">
                       {formatSmartTimestamp(reflection.createdAt)}
@@ -100,11 +102,23 @@ export default function PublicPage() {
                       ))}
                     </div>
                   )}
+                </Link>
+                <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
+                  <span>Shared by: {reflection.isAnonymous ? "Anonymous" : "User"}</span>
+                  <span className="inline-flex items-center gap-1 text-slate-700">
+                    <span aria-hidden>👍</span>
+                    {typeof reflection.likes === "number" ? reflection.likes : 0}
+                  </span>
                 </div>
-                <div className="mt-4 text-sm text-slate-600">
-                  Shared by: {reflection.isAnonymous ? "Anonymous" : "User"}
+                <div className="mt-3">
+                  <LikeButton
+                    reflectionId={reflection.id}
+                    initialLikes={typeof reflection.likes === "number" ? reflection.likes : 0}
+                    userLiked={Boolean(currentUser && reflection.likedBy?.[currentUser.uid])}
+                    currentUser={currentUser}
+                  />
                 </div>
-              </Link>
+              </article>
             );
           })}
         </div>

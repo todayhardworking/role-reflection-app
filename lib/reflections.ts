@@ -13,6 +13,8 @@ export interface Reflection {
   suggestions?: Record<string, RoleSuggestion> | null;
   isPublic: boolean;
   isAnonymous: boolean;
+  likes?: number;
+  likedBy?: Record<string, boolean>;
 }
 
 export interface PublicReflection {
@@ -23,6 +25,12 @@ export interface PublicReflection {
   rolesInvolved?: string[];
   isAnonymous: boolean;
   suggestions?: Record<string, RoleSuggestion> | null;
+  likes?: number;
+  likedBy?: Record<string, boolean>;
+}
+
+export interface LikedPublicReflection extends PublicReflection {
+  likedAt: string;
 }
 
 export function deriveTitleFromText(text: string, providedTitle?: string) {
@@ -188,4 +196,18 @@ export async function loadPublicReflection(reflectionId: string): Promise<Public
 
   const data = await response.json();
   return data.reflection as PublicReflection;
+}
+
+export async function loadUserLikedReflections(uid: string): Promise<LikedPublicReflection[]> {
+  const response = await fetch(`/api/userLikes?uid=${encodeURIComponent(uid)}`, {
+    cache: "no-store",
+  });
+
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new Error(body?.error || "Failed to load liked reflections");
+  }
+
+  const data = await response.json();
+  return data.reflections as LikedPublicReflection[];
 }

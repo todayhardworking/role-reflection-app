@@ -104,6 +104,30 @@ function CalendarIcon({ className }: IconProps) {
   );
 }
 
+function HandThumbUpIcon({ className }: IconProps) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      fill="none"
+      viewBox="0 0 24 24"
+      strokeWidth={1.5}
+      stroke="currentColor"
+      className={className}
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M12.75 4.5c0 .966-.784 1.75-1.75 1.75H8.25a2.25 2.25 0 0 0-2.25 2.25v7.5A2.25 2.25 0 0 0 8.25 18H15a2.25 2.25 0 0 0 2.25-2.25v-5.5A2.75 2.75 0 0 0 14.5 7.5h-1.91c-.203 0-.398-.08-.542-.224l-.888-.888a1.25 1.25 0 0 1-.37-.888Z"
+      />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        d="M5.25 9.75h-1.5A1.75 1.75 0 0 0 2 11.5v4a1.75 1.75 0 0 0 1.75 1.75h1.5V9.75Z"
+      />
+    </svg>
+  );
+}
+
 function GlobeIcon({ className }: IconProps) {
   return (
     <svg
@@ -194,6 +218,14 @@ export default function withAuth<P extends object>(
           action: () => {
             setIsDrawerOpen(false);
             router.push("/reflections");
+          },
+        },
+        {
+          label: "My Likes",
+          icon: HandThumbUpIcon,
+          action: () => {
+            setIsDrawerOpen(false);
+            router.push("/my-likes");
           },
         },
         {
