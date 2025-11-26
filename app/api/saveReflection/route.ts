@@ -20,6 +20,9 @@ export async function POST(request: Request) {
       createdAt: createdAt || new Date().toISOString(),
       isPublic: false,
       isAnonymous: true,
+      likes: 0,
+      likedBy: {},
+      rateLimit: {},
     });
 
     return NextResponse.json({ success: true, id: docRef.id });
