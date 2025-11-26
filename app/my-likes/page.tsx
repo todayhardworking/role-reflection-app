@@ -120,16 +120,10 @@ function MyLikesPage() {
               </Link>
               <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
                 <span>Shared by: {reflection.isAnonymous ? "Anonymous" : "User"}</span>
-                <span className="inline-flex items-center gap-1 text-slate-700">
-                  <span aria-hidden>👍</span>
-                  {likeCount}
-                </span>
-              </div>
-              <div className="mt-3">
                 <LikeButton
                   reflectionId={reflection.id}
                   initialLikes={likeCount}
-                  userLiked
+                  initialLikedBy={reflection.likedBy ?? {}}
                   currentUser={currentUser}
                 />
               </div>

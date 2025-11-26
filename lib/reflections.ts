@@ -13,8 +13,9 @@ export interface Reflection {
   suggestions?: Record<string, RoleSuggestion> | null;
   isPublic: boolean;
   isAnonymous: boolean;
-  likes?: number;
-  likedBy?: Record<string, boolean>;
+  likes: number;
+  likedBy: Record<string, boolean>;
+  rateLimit?: Record<string, number>;
 }
 
 export interface PublicReflection {
@@ -25,8 +26,9 @@ export interface PublicReflection {
   rolesInvolved?: string[];
   isAnonymous: boolean;
   suggestions?: Record<string, RoleSuggestion> | null;
-  likes?: number;
-  likedBy?: Record<string, boolean>;
+  likes: number;
+  likedBy: Record<string, boolean>;
+  rateLimit?: Record<string, number>;
 }
 
 export interface LikedPublicReflection extends PublicReflection {

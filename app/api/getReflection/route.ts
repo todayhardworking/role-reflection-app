@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
       rolesInvolved?: string[];
       isPublic?: boolean;
       isAnonymous?: boolean;
+      likes?: number;
+      likedBy?: Record<string, boolean>;
+      rateLimit?: Record<string, number>;
     };
 
     if (uid && data?.uid && data.uid !== uid) {
@@ -55,6 +58,9 @@ export async function GET(request: NextRequest) {
         rolesInvolved: data?.rolesInvolved ?? [],
         isPublic: data?.isPublic ?? false,
         isAnonymous: data?.isAnonymous ?? true,
+        likes: typeof data?.likes === "number" ? data.likes : 0,
+        likedBy: data?.likedBy ?? {},
+        rateLimit: data?.rateLimit ?? {},
       },
     });
   } catch (error) {

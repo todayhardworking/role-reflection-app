@@ -22,6 +22,7 @@ export async function GET() {
         isAnonymous?: boolean;
         likes?: number;
         likedBy?: Record<string, boolean>;
+        rateLimit?: Record<string, number>;
       };
 
       const createdAtValue = data?.createdAt;
@@ -40,6 +41,7 @@ export async function GET() {
         isAnonymous: data?.isAnonymous ?? true,
         likes: typeof data?.likes === "number" ? data.likes : 0,
         likedBy: data?.likedBy ?? {},
+        rateLimit: data?.rateLimit ?? {},
       };
     });
 

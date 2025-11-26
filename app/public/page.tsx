@@ -105,16 +105,10 @@ export default function PublicPage() {
                 </Link>
                 <div className="mt-4 flex items-center justify-between text-sm text-slate-600">
                   <span>Shared by: {reflection.isAnonymous ? "Anonymous" : "User"}</span>
-                  <span className="inline-flex items-center gap-1 text-slate-700">
-                    <span aria-hidden>👍</span>
-                    {typeof reflection.likes === "number" ? reflection.likes : 0}
-                  </span>
-                </div>
-                <div className="mt-3">
                   <LikeButton
                     reflectionId={reflection.id}
                     initialLikes={typeof reflection.likes === "number" ? reflection.likes : 0}
-                    userLiked={Boolean(currentUser && reflection.likedBy?.[currentUser.uid])}
+                    initialLikedBy={reflection.likedBy ?? {}}
                     currentUser={currentUser}
                   />
                 </div>

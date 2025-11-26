@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
       suggestions?: Record<string, RoleSuggestion> | null;
       likes?: number;
       likedBy?: Record<string, boolean>;
+      rateLimit?: Record<string, number>;
     };
 
     if (!data?.isPublic) {
@@ -54,6 +55,7 @@ export async function GET(request: NextRequest) {
         suggestions: data?.suggestions ?? null,
         likes: typeof data?.likes === "number" ? data.likes : 0,
         likedBy: data?.likedBy ?? {},
+        rateLimit: data?.rateLimit ?? {},
       },
     });
   } catch (error) {

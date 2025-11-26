@@ -81,18 +81,12 @@ export default function PublicReflectionDetailPage({
           <p className="text-sm text-slate-600">
             {formatSmartTimestamp(reflection.createdAt)} · Shared by: {reflection.isAnonymous ? "Anonymous" : "User"}
           </p>
-          <div className="flex items-center gap-4">
-            <span className="inline-flex items-center gap-1 text-sm font-semibold text-slate-700">
-              <span aria-hidden>👍</span>
-              {typeof reflection.likes === "number" ? reflection.likes : 0}
-            </span>
-            <LikeButton
-              reflectionId={reflection.id}
-              initialLikes={typeof reflection.likes === "number" ? reflection.likes : 0}
-              userLiked={Boolean(currentUser && reflection.likedBy?.[currentUser.uid])}
-              currentUser={currentUser}
-            />
-          </div>
+          <LikeButton
+            reflectionId={reflection.id}
+            initialLikes={typeof reflection.likes === "number" ? reflection.likes : 0}
+            initialLikedBy={reflection.likedBy ?? {}}
+            currentUser={currentUser}
+          />
           {reflection.rolesInvolved && reflection.rolesInvolved.length > 0 && (
             <div className="flex flex-wrap gap-2">
               {reflection.rolesInvolved.map((role) => (

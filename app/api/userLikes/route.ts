@@ -52,12 +52,13 @@ export async function GET(request: NextRequest) {
           createdAt?: FirebaseFirestore.Timestamp | string;
           rolesInvolved?: string[];
           roles?: string[];
-          isAnonymous?: boolean;
-          isPublic?: boolean;
-          suggestions?: Record<string, unknown> | null;
-          likes?: number;
-          likedBy?: Record<string, boolean>;
-        };
+        isAnonymous?: boolean;
+        isPublic?: boolean;
+        suggestions?: Record<string, unknown> | null;
+        likes?: number;
+        likedBy?: Record<string, boolean>;
+        rateLimit?: Record<string, number>;
+      };
 
         const createdAtValue = toISOString(data.createdAt);
         const reflection = {
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
           likes: data.likes ?? 0,
           likedBy: data.likedBy ?? {},
           likedAt: likedAtById.get(snapshot.id) ?? new Date(0).toISOString(),
+          rateLimit: data.rateLimit ?? {},
         };
 
         if (!reflection.isPublic) return null;
