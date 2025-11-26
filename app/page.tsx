@@ -117,7 +117,7 @@ function ReflectionPreviewList({
               ) : null}
             </div>
             <Link
-              href={`/reflection/${reflection.id}`}
+              href={`/public/${reflection.id}`}
               className="mt-4 inline-flex items-center text-sm font-semibold text-slate-900 underline-offset-4 hover:underline"
             >
               Read More →
