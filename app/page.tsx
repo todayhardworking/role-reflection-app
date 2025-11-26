@@ -281,6 +281,34 @@ export default function LandingPage() {
         </div>
       </section>
 
+      <section className="px-6 py-16 sm:px-10">
+        <div className="mx-auto max-w-3xl space-y-6 text-center">
+          <div className="space-y-3">
+            <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">⭐ Why “Revo Reflect”?</h2>
+          </div>
+          <div className="space-y-4 text-base leading-relaxed text-slate-600">
+            <p>
+              Revo comes from revolve and evolve — the idea that personal growth is never a straight line.
+              <br />
+              It turns, adapts, reshapes, and rises again.
+            </p>
+            <p>
+              Reflect is where that growth begins.
+              <br />
+              Every insight, every shift, every improvement comes from pausing to look inward.
+            </p>
+            <p>Together, Revo Reflect stands for:</p>
+            <p>
+              Reflect deeply.
+              <br />
+              Evolve consistently.
+              <br />
+              Repeat — and become better every cycle.
+            </p>
+          </div>
+        </div>
+      </section>
+
       <section className="bg-[#F8F9FB] px-6 py-16 sm:px-10">
         <div className="mx-auto max-w-6xl space-y-10">
           <div className="flex items-center justify-between">
