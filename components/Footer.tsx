@@ -18,7 +18,7 @@ export default function Footer() {
             Terms of Service
           </Link>
           <span className="text-slate-400">|</span>
-          <Link href="/auth" className="hover:text-slate-700">
+          <Link href="/signin" className="hover:text-slate-700">
             Sign In / Register
           </Link>
         </nav>
