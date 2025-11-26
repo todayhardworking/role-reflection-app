@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import type { ReactNode } from "react";
 import "./globals.css";
 import { UserContextProvider } from "@/context/UserContext";
+import Footer from "@/components/Footer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -18,8 +19,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={inter.className}>
-      <body>
+      <body className="min-h-screen bg-white text-slate-900">
         <UserContextProvider>{children}</UserContextProvider>
+        <Footer />
       </body>
     </html>
   );

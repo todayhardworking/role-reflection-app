@@ -353,32 +353,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      <section className="bg-[#F8F9FB] px-6 py-14 sm:px-10">
-        <div className="mx-auto max-w-5xl space-y-6 text-center text-sm text-slate-600">
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Link href="/" className="text-slate-700 transition hover:text-slate-900">
-              Revo Reflect
-            </Link>
-            <span className="h-4 w-px bg-slate-300" aria-hidden />
-            <Link href="/public" className="transition hover:text-slate-900">
-              Public Reflections
-            </Link>
-            <span className="h-4 w-px bg-slate-300" aria-hidden />
-            <Link href="#" className="transition hover:text-slate-900">
-              Privacy Policy
-            </Link>
-            <span className="h-4 w-px bg-slate-300" aria-hidden />
-            <Link href="#" className="transition hover:text-slate-900">
-              Terms of Service
-            </Link>
-            <span className="h-4 w-px bg-slate-300" aria-hidden />
-            <Link href="/signin" className="transition hover:text-slate-900">
-              Sign In / Register
-            </Link>
-          </div>
-          <p className="text-xs text-slate-500">A minimal space for clarity, powered by Revo Reflect.</p>
-        </div>
-      </section>
     </main>
   );
 }
