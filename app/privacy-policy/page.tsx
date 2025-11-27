@@ -54,8 +54,6 @@ export default function PrivacyPolicyPage() {
         <h2 className="text-xl font-semibold">7. Updates</h2>
         <p className="text-slate-700 leading-relaxed">We may update this Privacy Policy occasionally. Updates will be posted on this page with a revised date.</p>
 
-        <h2 className="text-xl font-semibold">8. Contact</h2>
-        <p className="text-slate-700 leading-relaxed">Email: support@revoreflect.app (placeholder address)</p>
       </div>
     </section>
   );
