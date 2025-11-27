@@ -51,7 +51,7 @@ export default function AppHeader() {
         { label: "Home", action: () => router.push("/") },
         { label: "Public Reflections", action: () => router.push("/public") },
         { label: "Sign In", action: () => router.push("/signin") },
-        { label: "Register", action: () => router.push("/register") },
+        { label: "Register", action: () => router.push("/signup") },
       ];
     }
 
