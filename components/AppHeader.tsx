@@ -96,47 +96,46 @@ export default function AppHeader() {
       </div>
 
       {isDrawerOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40"
-          aria-hidden="true"
-          onClick={closeDrawer}
-        />
-      )}
-
-      <aside
-        className={`fixed inset-y-0 right-0 z-50 w-[280px] max-w-full transform bg-white shadow-2xl transition-transform duration-300 ${
-          isDrawerOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <div className="flex items-center justify-between border-b border-slate-200 p-4">
-          <div className="text-sm font-semibold text-slate-900">Revo Reflect – AI Role Reflection App</div>
-          <button
-            type="button"
+        <div className="fixed inset-0 z-40 bg-black/40">
+          <div
+            className="absolute inset-0"
+            aria-hidden="true"
             onClick={closeDrawer}
-            className="rounded p-1 text-slate-700 transition hover:bg-slate-100"
-            aria-label="Close navigation menu"
-          >
-            <XMarkIcon className="h-6 w-6" />
-          </button>
-        </div>
-
-        <nav className="p-4">
-          <ul className="space-y-3">
-            {navItems.map((item) => (
-              <li key={item.label}>
+          />
+          <div className="relative flex h-full items-start justify-end p-4">
+            <div className="w-full max-w-[320px] rounded-xl bg-white shadow-2xl">
+              <div className="flex items-center justify-between border-b border-slate-200 p-4">
+                <div className="text-sm font-semibold text-slate-900">Revo Reflect – AI Role Reflection App</div>
                 <button
                   type="button"
-                  onClick={() => handleItemClick(item.action)}
-                  className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
+                  onClick={closeDrawer}
+                  className="rounded p-1 text-slate-700 transition hover:bg-slate-100"
+                  aria-label="Close navigation menu"
                 >
-                  <span>{item.label}</span>
-                  <span className="text-slate-400">→</span>
+                  <XMarkIcon className="h-6 w-6" />
                 </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </aside>
+              </div>
+
+              <nav className="p-4">
+                <ul className="space-y-3">
+                  {navItems.map((item) => (
+                    <li key={item.label}>
+                      <button
+                        type="button"
+                        onClick={() => handleItemClick(item.action)}
+                        className="flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-sm font-semibold text-slate-800 transition hover:bg-slate-100"
+                      >
+                        <span>{item.label}</span>
+                        <span className="text-slate-400">→</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </nav>
+            </div>
+          </div>
+        </div>
+      )}
     </header>
   );
 }
