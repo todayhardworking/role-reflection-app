@@ -26,7 +26,7 @@ function DashboardPage() {
     () => [
       {
         title: "Add Reflection",
-        description: "Capture a new reflection while it&apos;s fresh in your mind.",
+        description: "Capture a new reflection while it is fresh in your mind.",
         href: "/reflection/new",
       },
       {
