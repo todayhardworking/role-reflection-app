@@ -12,7 +12,7 @@ export default function Footer() {
             Public Reflections
           </Link>
           <span className="text-slate-400">|</span>
-          <Link href="/privacy" className="hover:text-slate-700">
+          <Link href="/privacy-policy" className="hover:text-slate-700">
             Privacy Policy
           </Link>
           <span className="text-slate-400">|</span>
