@@ -6,7 +6,7 @@ interface SharedLayoutProps {
 
 export function SharedLayout({ children }: SharedLayoutProps) {
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900 overflow-x-hidden">
       <div className="mx-auto flex max-w-3xl flex-col gap-8 px-6 py-12">
         <header className="text-center">
           <h1 className="text-3xl font-semibold tracking-tight">Role Reflection App</h1>
