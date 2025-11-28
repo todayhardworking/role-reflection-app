@@ -54,10 +54,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const reflectionsCollection = adminDb
-      .collection("users")
-      .doc(decoded.uid)
-      .collection("reflections");
+    const userReflections = adminDb
+      .collection("reflections")
+      .where("uid", "==", decoded.uid);
 
     const now = DateTime.now().setZone(USER_TIME_ZONE);
     const startOfWeek = toTimestamp(now.startOf("week").toJSDate());
@@ -69,13 +68,15 @@ export async function GET(request: NextRequest) {
       reflectionsThisWeekSnapshot,
       reflectionsThisMonthSnapshot,
     ] = await Promise.all([
-      reflectionsCollection.count().get(),
-      reflectionsCollection.where("isPublic", "==", true).count().get(),
-      reflectionsCollection.where("createdAt", ">=", startOfWeek).count().get(),
-      reflectionsCollection.where("createdAt", ">=", startOfMonth).count().get(),
+      userReflections.count().get(),
+      userReflections.where("isPublic", "==", true).count().get(),
+      userReflections.where("createdAt", ">=", startOfWeek).count().get(),
+      userReflections.where("createdAt", ">=", startOfMonth).count().get(),
     ]);
 
-    const publicReflectionsSnapshot = await reflectionsCollection.where("isPublic", "==", true).get();
+    const publicReflectionsSnapshot = await userReflections
+      .where("isPublic", "==", true)
+      .get();
 
     let totalLikesReceived = 0;
     publicReflectionsSnapshot.forEach((doc) => {
