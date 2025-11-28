@@ -29,7 +29,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const auth = getAuth(firebaseApp);
+    let isMounted = true;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) {
+        return;
+      }
+
       if (!user) {
         setCurrentUser(null);
         setLoading(false);
@@ -52,15 +57,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
           timezone = timeZone;
         }
 
+        const currentAuthUser = auth.currentUser;
+        if (!isMounted || !currentAuthUser || currentAuthUser.uid !== user.uid) {
+          return;
+        }
+
         setCurrentUser(Object.assign(user, { timezone }));
       } catch (error) {
+        const currentAuthUser = auth.currentUser;
+        if (!isMounted || !currentAuthUser || currentAuthUser.uid !== user.uid) {
+          return;
+        }
+
         setCurrentUser(Object.assign(user, {}));
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
