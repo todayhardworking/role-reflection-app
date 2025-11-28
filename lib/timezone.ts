@@ -1,5 +1,4 @@
-import { startOfMonth, startOfWeek } from "date-fns";
-import { format, utcToZonedTime, zonedTimeToUtc } from "date-fns-tz";
+import { DateTime } from "luxon";
 
 export const DEFAULT_TIME_ZONE = "UTC";
 
@@ -34,13 +33,11 @@ export async function ensureUserTimezone(uid: string, timezoneGuess?: string): P
 }
 
 export function toUserZonedDate(dateInput: string | Date | number, timeZone = DEFAULT_TIME_ZONE) {
-  const date = typeof dateInput === "string" || typeof dateInput === "number" ? new Date(dateInput) : dateInput;
-  return utcToZonedTime(date, timeZone);
+  return toDateTime(dateInput, timeZone).toJSDate();
 }
 
 export function formatMonth(dateInput: string | Date, timeZone = DEFAULT_TIME_ZONE) {
-  const zonedDate = toUserZonedDate(dateInput, timeZone);
-  return format(zonedDate, "yyyy-MM", { timeZone });
+  return toDateTime(dateInput, timeZone).toFormat("yyyy-MM");
 }
 
 export function weekBelongsToMonth(weekStartISO: string, timeZone: string, targetMonth: string) {
@@ -48,13 +45,23 @@ export function weekBelongsToMonth(weekStartISO: string, timeZone: string, targe
 }
 
 export function startOfWeekInTZ(dateInput: string | Date = new Date(), timeZone = DEFAULT_TIME_ZONE) {
-  const zonedDate = toUserZonedDate(dateInput, timeZone);
-  const start = startOfWeek(zonedDate, { weekStartsOn: 1 });
-  return zonedTimeToUtc(start, timeZone);
+  const start = toDateTime(dateInput, timeZone).set({ weekday: 1 }).startOf("day");
+  return start.toUTC().toJSDate();
 }
 
 export function startOfMonthInTZ(dateInput: string | Date = new Date(), timeZone = DEFAULT_TIME_ZONE) {
-  const zonedDate = toUserZonedDate(dateInput, timeZone);
-  const start = startOfMonth(zonedDate);
-  return zonedTimeToUtc(start, timeZone);
+  const start = toDateTime(dateInput, timeZone).startOf("month");
+  return start.toUTC().toJSDate();
+}
+
+function toDateTime(dateInput: string | Date | number, timeZone = DEFAULT_TIME_ZONE) {
+  if (typeof dateInput === "string") {
+    return DateTime.fromISO(dateInput, { zone: "utc" }).setZone(timeZone);
+  }
+
+  if (typeof dateInput === "number") {
+    return DateTime.fromMillis(dateInput, { zone: "utc" }).setZone(timeZone);
+  }
+
+  return DateTime.fromJSDate(dateInput, { zone: "utc" }).setZone(timeZone);
 }
