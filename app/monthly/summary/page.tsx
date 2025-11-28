@@ -76,7 +76,7 @@ function MonthlySummaryPage() {
         const weeks: WeeklyHistoryEntry[] = Array.isArray(data?.weeks)
           ? data.weeks
               .filter((week: WeeklyHistoryEntry) => week?.hasAnalysis)
-              .map((week) => ({
+              .map((week: WeeklyHistoryEntry) => ({
                 weekId: week.weekId,
                 startISO: week.startISO,
                 hasAnalysis: week.hasAnalysis,
