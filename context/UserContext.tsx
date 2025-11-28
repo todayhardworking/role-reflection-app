@@ -3,6 +3,7 @@
 import { firebaseApp } from "@/lib/firebase";
 import { signOutUser } from "@/lib/auth";
 import { getAuth, onAuthStateChanged, User } from "firebase/auth";
+import { doc, getDoc, getFirestore, setDoc } from "firebase/firestore";
 import {
   createContext,
   ReactNode,
@@ -12,8 +13,10 @@ import {
   useState,
 } from "react";
 
+type CurrentUserWithTimezone = User & { timezone?: string };
+
 interface UserContextValue {
-  currentUser: User | null;
+  currentUser: CurrentUserWithTimezone | null;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -21,17 +24,57 @@ interface UserContextValue {
 export const UserContext = createContext<UserContextValue | undefined>(undefined);
 
 export function UserProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [currentUser, setCurrentUser] = useState<CurrentUserWithTimezone | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const auth = getAuth(firebaseApp);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setCurrentUser(user);
-      setLoading(false);
+    const db = getFirestore(firebaseApp);
+    let isMounted = true;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (!isMounted) return;
+
+      if (!user) {
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
+
+      setLoading(true);
+
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        const snapshot = await getDoc(userDocRef);
+        const firestoreTimezone = snapshot.data()?.timezone as string | undefined;
+
+        let timezone = firestoreTimezone;
+
+        if (!firestoreTimezone) {
+          const resolvedTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          await setDoc(userDocRef, { timezone: resolvedTimeZone }, { merge: true });
+          timezone = resolvedTimeZone;
+        }
+
+        if (isMounted) {
+          setCurrentUser(Object.assign(user, { timezone }));
+        }
+      } catch (error) {
+        console.error("Failed to load user profile", error);
+        if (isMounted) {
+          setCurrentUser(user);
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, []);
 
   const signOut = async () => {
