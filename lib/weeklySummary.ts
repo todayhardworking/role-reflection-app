@@ -1,5 +1,6 @@
 export interface WeeklySummary {
   weekId: string;
+  weekStart?: string;
   summary: string;
   wins: string[];
   challenges: string[];
@@ -96,6 +97,11 @@ export function getWeekRangeFromWeekId(weekId: string, timeZone = "Asia/Kuala_Lu
   inclusiveEnd.setHours(23, 59, 59, 999);
 
   return { start, endExclusive, inclusiveEnd };
+}
+
+export function getWeekStartISOFromWeekId(weekId: string, timeZone = "Asia/Kuala_Lumpur") {
+  const { start } = getWeekRangeFromWeekId(weekId, timeZone);
+  return start.toISOString();
 }
 
 export function getWeekIdFromDate(dateInput: string | Date, timeZone = "Asia/Kuala_Lumpur") {

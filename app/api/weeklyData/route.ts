@@ -5,6 +5,7 @@ import {
   formatWeekLabelFromWeekId,
   getWeekIdFromDate,
   getWeekRangeFromWeekId,
+  getWeekStartISOFromWeekId,
   type WeeklyReflection,
   type WeeklySummary,
 } from "@/lib/weeklySummary";
@@ -62,6 +63,9 @@ async function fetchWeeklySummary(uid: string, weekId: string): Promise<WeeklySu
 
   return {
     weekId,
+    weekStart:
+      toIsoString(data?.weekStart as unknown as FirebaseFirestore.Timestamp | string | undefined) ||
+      getWeekStartISOFromWeekId(weekId),
     summary: typeof data?.summary === "string" ? data.summary : "",
     wins: normalizeStringArray(data?.wins),
     challenges: normalizeStringArray(data?.challenges),

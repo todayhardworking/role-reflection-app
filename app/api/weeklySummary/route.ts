@@ -1,7 +1,12 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getCurrentWeekId, getWeekRangeFromWeekId, type WeeklySummary } from "@/lib/weeklySummary";
+import {
+  getCurrentWeekId,
+  getWeekRangeFromWeekId,
+  getWeekStartISOFromWeekId,
+  type WeeklySummary,
+} from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
 
@@ -48,8 +53,12 @@ async function authenticate(request: NextRequest) {
 }
 
 function sanitizeWeeklySummary(data: Partial<WeeklySummary> | undefined, fallbackWeekId: string): WeeklySummary {
+  const inferredWeekStart = getWeekStartISOFromWeekId(fallbackWeekId);
+  const providedWeekStart = toIsoString(data?.weekStart as unknown as FirebaseFirestore.Timestamp | string | undefined);
+
   return {
     weekId: data?.weekId ?? fallbackWeekId,
+    weekStart: providedWeekStart || inferredWeekStart,
     summary: data?.summary ?? "",
     wins: normalizeStringArray(data?.wins),
     challenges: normalizeStringArray(data?.challenges),
@@ -133,6 +142,7 @@ function buildWeeklySummaryObject(
     challenges?: unknown;
     nextWeek?: unknown;
   },
+  weekStart?: string,
 ): WeeklySummary {
   const summaryText = typeof aiResult.summary === "string" ? aiResult.summary : "";
   const wins = normalizeStringArray(aiResult.wins);
@@ -141,6 +151,7 @@ function buildWeeklySummaryObject(
 
   return {
     weekId,
+    weekStart,
     summary: summaryText,
     wins,
     challenges,
@@ -205,14 +216,14 @@ export async function POST(request: NextRequest) {
   });
 
   const aiResult = await callWeeklySummaryModel(reflections);
-  const weeklySummary = buildWeeklySummaryObject(weekId, aiResult);
+  const weeklySummary = buildWeeklySummaryObject(weekId, aiResult, weekStartISO);
 
   await adminDb
     .collection("weeklySummaries")
     .doc(uid)
     .collection("weeks")
     .doc(weekId)
-    .set({ ...weeklySummary, uid });
+    .set({ ...weeklySummary, uid, weekStart: weekStartISO });
 
   return NextResponse.json({ weeklySummary });
 }

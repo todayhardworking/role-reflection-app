@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebaseAdmin";
 import {
   getWeekCompletionInfo,
   getWeekRangeFromWeekId,
+  getWeekStartISOFromWeekId,
   type WeeklySummary,
 } from "@/lib/weeklySummary";
 
@@ -128,6 +129,7 @@ function buildWeeklySummaryObject(
     challenges?: unknown;
     nextWeek?: unknown;
   },
+  weekStart?: string,
 ): WeeklySummary {
   const summaryText = typeof aiResult.summary === "string" ? aiResult.summary : "";
   const wins = normalizeStringArray(aiResult.wins);
@@ -136,6 +138,7 @@ function buildWeeklySummaryObject(
 
   return {
     weekId,
+    weekStart,
     summary: summaryText,
     wins,
     challenges,
@@ -216,7 +219,7 @@ export async function POST(request: NextRequest) {
     }
 
     const aiResult = await callWeeklyAnalysisModel(reflections);
-    const weeklySummary = buildWeeklySummaryObject(weekId, aiResult);
+    const weeklySummary = buildWeeklySummaryObject(weekId, aiResult, weekStartISO || getWeekStartISOFromWeekId(weekId));
 
     await adminDb
       .collection("weeklySummaries")
