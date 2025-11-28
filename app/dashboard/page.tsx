@@ -4,7 +4,11 @@ import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatActiveDuration } from "@/lib/formatTime";
+import { type DashboardStats } from "@/lib/types";
 
 interface MenuCard {
   title: string;
@@ -22,6 +26,9 @@ function DashboardPage() {
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
   const menuCards: MenuCard[] = useMemo(
     () => [
       {
@@ -60,6 +67,51 @@ function DashboardPage() {
     ],
     [],
   );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const fetchStats = async () => {
+      if (!currentUser) return;
+
+      try {
+        setLoadingStats(true);
+        setStatsError(null);
+        const token = await currentUser.getIdToken(true);
+        const response = await fetch("/api/stats", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(body?.error || "Failed to load statistics");
+        }
+
+        const payload = (await response.json()) as DashboardStats;
+
+        if (isMounted) {
+          setStats(payload);
+        }
+      } catch (err) {
+        console.error(err);
+        if (isMounted) {
+          setStatsError("Unable to load statistics. Please try again.");
+        }
+      } finally {
+        if (isMounted) {
+          setLoadingStats(false);
+        }
+      }
+    };
+
+    fetchStats();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentUser]);
 
   const handleDeleteAccount = async () => {
     if (!currentUser) return;
@@ -121,6 +173,77 @@ function DashboardPage() {
           Sign Out
         </button>
       </header>
+
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-slate-900">Statistics</h3>
+        {statsError && (
+          <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{statsError}</p>
+        )}
+        {loadingStats ? (
+          <p className="text-sm text-slate-600">Loading statistics...</p>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Reflections</CardTitle>
+              </CardHeader>
+              <CardContent className="text-3xl font-bold">
+                {stats?.totalReflections ?? "—"}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Public Reflections</CardTitle>
+              </CardHeader>
+              <CardContent className="text-3xl font-bold">
+                {stats?.totalPublicReflections ?? "—"}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Total Likes Received</CardTitle>
+              </CardHeader>
+              <CardContent className="text-3xl font-bold">
+                {stats?.totalLikesReceived ?? "—"}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>This Week / This Month</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-lg font-semibold text-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-600">This Week</span>
+                  <span className="text-2xl text-slate-900">{stats?.reflectionsThisWeek ?? "—"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-slate-600">This Month</span>
+                  <span className="text-2xl text-slate-900">{stats?.reflectionsThisMonth ?? "—"}</span>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Days with RevoReflect</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1 text-slate-800">
+                <div className="text-3xl font-bold">
+                  {formatActiveDuration(stats?.daysWithRevo ?? 0)}
+                </div>
+                {stats?.accountCreatedAt && (
+                  <p className="text-sm text-slate-600">
+                    Since {new Date(stats.accountCreatedAt).toLocaleDateString()}
+                  </p>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+      </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {menuCards.map((card) => {
