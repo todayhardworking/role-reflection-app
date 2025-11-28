@@ -5,6 +5,7 @@ import {
   formatWeekLabelFromWeekId,
   getWeekIdFromDate,
   getWeekRangeFromWeekId,
+  getWeekStartIsoFromWeekId,
   type WeeklyReflection,
   type WeeklySummary,
 } from "@/lib/weeklySummary";
@@ -59,9 +60,11 @@ async function fetchWeeklySummary(uid: string, weekId: string): Promise<WeeklySu
   }
 
   const data = summaryDoc.data() as Partial<WeeklySummary> | undefined;
+  const computedWeekStart = getWeekStartIsoFromWeekId(weekId);
 
   return {
     weekId,
+    weekStart: typeof data?.weekStart === "string" && data.weekStart ? data.weekStart : computedWeekStart,
     summary: typeof data?.summary === "string" ? data.summary : "",
     wins: normalizeStringArray(data?.wins),
     challenges: normalizeStringArray(data?.challenges),
