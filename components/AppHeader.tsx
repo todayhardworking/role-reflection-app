@@ -59,9 +59,7 @@ export default function AppHeader() {
       { label: "Dashboard", action: () => router.push("/dashboard") },
       { label: "New Reflection", action: () => router.push("/reflection/new") },
       { label: "Reflections", action: () => router.push("/reflections") },
-      { label: "Weekly Reports", action: () => router.push("/weekly/summary") },
       { label: "Public Reflections", action: () => router.push("/public") },
-      { label: "Manage Roles", action: () => router.push("/roles") },
       {
         label: "Sign Out",
         action: async () => {
