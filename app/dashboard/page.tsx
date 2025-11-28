@@ -35,6 +35,16 @@ function DashboardPage() {
         href: "/reflections",
       },
       {
+        title: "Weekly Reports",
+        description: "View your AI weekly reflections",
+        href: "/weekly/summary",
+      },
+      {
+        title: "Monthly Reports",
+        description: "Your monthly AI insights and trend analysis",
+        href: "/monthly/summary",
+      },
+      {
         title: "Manage Roles",
         description: "Update the roles that guide your reflections and coaching.",
         href: "/roles",
