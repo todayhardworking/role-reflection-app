@@ -2,6 +2,7 @@
 
 import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
+import { formatMonth } from "@/lib/timezone";
 import { useEffect, useMemo, useState } from "react";
 
 type WeeklyHistoryEntry = {
@@ -32,7 +33,7 @@ type MonthlyStatus =
   | { status: "exists"; monthlySummary: MonthlySummary };
 
 function MonthlySummaryPage() {
-  const { currentUser } = useUser();
+  const { currentUser, timezone, timezoneLoading } = useUser();
   const [weeks, setWeeks] = useState<WeeklyHistoryEntry[]>([]);
   const [isLoadingWeeks, setIsLoadingWeeks] = useState(true);
   const [weeksError, setWeeksError] = useState<string | null>(null);
@@ -43,7 +44,7 @@ function MonthlySummaryPage() {
   const [isGenerating, setIsGenerating] = useState(false);
 
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser || timezoneLoading) return;
 
     let isMounted = true;
 
@@ -84,21 +85,20 @@ function MonthlySummaryPage() {
     return () => {
       isMounted = false;
     };
-  }, [currentUser]);
+  }, [currentUser, timezoneLoading]);
 
   const availableMonths = useMemo(() => {
     const monthSet = new Set<string>();
 
+    const tz = timezone || "UTC";
     weeks.forEach((week) => {
       if (!week.hasAnalysis || !week.startISO) return;
-      const date = new Date(week.startISO);
-      if (Number.isNaN(date.getTime())) return;
-      const monthLabel = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+      const monthLabel = formatMonth(week.startISO, tz);
       monthSet.add(monthLabel);
     });
 
     return Array.from(monthSet).sort((a, b) => b.localeCompare(a));
-  }, [weeks]);
+  }, [weeks, timezone]);
 
   useEffect(() => {
     if (!selectedMonth && availableMonths.length) {
@@ -107,7 +107,7 @@ function MonthlySummaryPage() {
   }, [availableMonths, selectedMonth]);
 
   useEffect(() => {
-    if (!currentUser || !selectedMonth) return;
+    if (!currentUser || !selectedMonth || timezoneLoading) return;
 
     let isMounted = true;
 
@@ -174,7 +174,7 @@ function MonthlySummaryPage() {
     return () => {
       isMounted = false;
     };
-  }, [currentUser, selectedMonth]);
+  }, [currentUser, selectedMonth, timezoneLoading]);
 
   const handleGenerate = async () => {
     if (!currentUser || !selectedMonth) return;
@@ -222,6 +222,14 @@ function MonthlySummaryPage() {
 
   if (!currentUser) {
     return null;
+  }
+
+  if (timezoneLoading) {
+    return (
+      <section className="space-y-2 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-sm text-slate-600">Loading timezone preferences...</p>
+      </section>
+    );
   }
 
   const currentReport = status?.status === "exists" ? status.monthlySummary : null;

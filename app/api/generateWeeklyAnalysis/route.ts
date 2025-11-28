@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { getUserTimezone } from "@/lib/timezone";
 import {
   getWeekCompletionInfo,
   getWeekRangeFromWeekId,
@@ -162,17 +163,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing weekId" }, { status: 400 });
     }
 
+    const timeZone = await getUserTimezone(decoded.uid);
     let start: Date;
     let endExclusive: Date;
 
     try {
-      ({ start, endExclusive } = getWeekRangeFromWeekId(weekId));
+      ({ start, endExclusive } = getWeekRangeFromWeekId(weekId, timeZone));
     } catch (rangeError) {
       console.error(`Invalid weekId provided for weekly analysis: ${weekId}`, rangeError);
       return NextResponse.json({ error: "Invalid weekId" }, { status: 400 });
     }
 
-    const { isComplete } = getWeekCompletionInfo(weekId);
+    const { isComplete } = getWeekCompletionInfo(weekId, { timeZone });
 
     if (!isComplete) {
       return NextResponse.json(
@@ -219,7 +221,11 @@ export async function POST(request: NextRequest) {
     }
 
     const aiResult = await callWeeklyAnalysisModel(reflections);
-    const weeklySummary = buildWeeklySummaryObject(weekId, aiResult, weekStartISO || getWeekStartISOFromWeekId(weekId));
+    const weeklySummary = buildWeeklySummaryObject(
+      weekId,
+      aiResult,
+      weekStartISO || getWeekStartISOFromWeekId(weekId, timeZone),
+    );
 
     await adminDb
       .collection("weeklySummaries")

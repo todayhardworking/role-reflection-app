@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { getUserTimezone } from "@/lib/timezone";
 import {
   getCurrentWeekId,
   getWeekRangeFromWeekId,
@@ -52,8 +53,12 @@ async function authenticate(request: NextRequest) {
   }
 }
 
-function sanitizeWeeklySummary(data: Partial<WeeklySummary> | undefined, fallbackWeekId: string): WeeklySummary {
-  const inferredWeekStart = getWeekStartISOFromWeekId(fallbackWeekId);
+function sanitizeWeeklySummary(
+  data: Partial<WeeklySummary> | undefined,
+  fallbackWeekId: string,
+  timeZone: string,
+): WeeklySummary {
+  const inferredWeekStart = getWeekStartISOFromWeekId(fallbackWeekId, timeZone);
   const providedWeekStart = toIsoString(data?.weekStart as unknown as FirebaseFirestore.Timestamp | string | undefined);
 
   return {
@@ -167,7 +172,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const weekId = getCurrentWeekId();
+  const timeZone = await getUserTimezone(decoded.uid);
+
+  const weekId = getCurrentWeekId(new Date(), timeZone);
   const docRef = adminDb.collection("weeklySummaries").doc(decoded.uid).collection("weeks").doc(weekId);
   const snapshot = await docRef.get();
 
@@ -176,7 +183,7 @@ export async function GET(request: NextRequest) {
   }
 
   const data = snapshot.data() as Partial<WeeklySummary> | undefined;
-  const weeklySummary = sanitizeWeeklySummary(data, weekId);
+  const weeklySummary = sanitizeWeeklySummary(data, weekId, timeZone);
 
   return NextResponse.json({ weeklySummary });
 }
@@ -189,8 +196,9 @@ export async function POST(request: NextRequest) {
   }
 
   const uid = decoded.uid;
-  const weekId = getCurrentWeekId();
-  const { start, endExclusive } = getWeekRangeFromWeekId(weekId);
+  const timeZone = await getUserTimezone(uid);
+  const weekId = getCurrentWeekId(new Date(), timeZone);
+  const { start, endExclusive } = getWeekRangeFromWeekId(weekId, timeZone);
   const weekStartISO = start.toISOString();
   const weekEndISO = endExclusive.toISOString();
 

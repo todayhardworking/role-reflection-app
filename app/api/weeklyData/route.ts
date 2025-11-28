@@ -1,6 +1,7 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { getUserTimezone } from "@/lib/timezone";
 import {
   formatWeekLabelFromWeekId,
   getWeekIdFromDate,
@@ -47,7 +48,7 @@ async function authenticate(request: NextRequest) {
   }
 }
 
-async function fetchWeeklySummary(uid: string, weekId: string): Promise<WeeklySummary | null> {
+async function fetchWeeklySummary(uid: string, weekId: string, timeZone: string): Promise<WeeklySummary | null> {
   const summaryDoc = await adminDb
     .collection("weeklySummaries")
     .doc(uid)
@@ -65,7 +66,7 @@ async function fetchWeeklySummary(uid: string, weekId: string): Promise<WeeklySu
     weekId,
     weekStart:
       toIsoString(data?.weekStart as unknown as FirebaseFirestore.Timestamp | string | undefined) ||
-      getWeekStartISOFromWeekId(weekId),
+      getWeekStartISOFromWeekId(weekId, timeZone),
     summary: typeof data?.summary === "string" ? data.summary : "",
     wins: normalizeStringArray(data?.wins),
     challenges: normalizeStringArray(data?.challenges),
@@ -74,8 +75,8 @@ async function fetchWeeklySummary(uid: string, weekId: string): Promise<WeeklySu
   };
 }
 
-async function getWeekDetail(uid: string, weekId: string) {
-  const { start, endExclusive } = getWeekRangeFromWeekId(weekId);
+async function getWeekDetail(uid: string, weekId: string, timeZone: string) {
+  const { start, endExclusive } = getWeekRangeFromWeekId(weekId, timeZone);
   const startIso = start.toISOString();
   const endIso = endExclusive.toISOString();
 
@@ -114,12 +115,12 @@ async function getWeekDetail(uid: string, weekId: string) {
       reflectionCount: reflections.length,
     },
     reflections,
-    weeklySummary: await fetchWeeklySummary(uid, weekId),
-    weekLabel: formatWeekLabelFromWeekId(weekId),
+    weeklySummary: await fetchWeeklySummary(uid, weekId, timeZone),
+    weekLabel: formatWeekLabelFromWeekId(weekId, timeZone),
   };
 }
 
-async function getWeeklyHistory(uid: string) {
+async function getWeeklyHistory(uid: string, timeZone: string) {
   const snapshot = await adminDb
     .collection("reflections")
     .where("uid", "==", uid)
@@ -141,8 +142,8 @@ async function getWeeklyHistory(uid: string) {
 
     if (!createdAtDate || Number.isNaN(createdAtDate.getTime())) return;
 
-    const weekId = getWeekIdFromDate(createdAtDate);
-    const { start } = getWeekRangeFromWeekId(weekId);
+    const weekId = getWeekIdFromDate(createdAtDate, timeZone);
+    const { start } = getWeekRangeFromWeekId(weekId, timeZone);
     const startISO = start.toISOString();
 
     const existing = weekMap.get(weekId);
@@ -160,7 +161,7 @@ async function getWeeklyHistory(uid: string) {
   const summaryResults = await Promise.all(
     Array.from(weekMap.keys()).map(async (weekId) => ({
       weekId,
-      summary: await fetchWeeklySummary(uid, weekId),
+      summary: await fetchWeeklySummary(uid, weekId, timeZone),
     })),
   );
 
@@ -174,7 +175,7 @@ async function getWeeklyHistory(uid: string) {
       weekId,
       reflectionCount: meta.reflectionCount,
       hasAnalysis: Boolean(summaryMap.get(weekId)),
-      weekLabel: formatWeekLabelFromWeekId(weekId),
+      weekLabel: formatWeekLabelFromWeekId(weekId, timeZone),
       startISO: meta.startISO,
     }))
     .sort((a, b) => new Date(b.startISO).getTime() - new Date(a.startISO).getTime());
@@ -190,11 +191,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const timeZone = await getUserTimezone(decoded.uid);
     const weekId = request.nextUrl.searchParams.get("weekId");
 
     if (weekId) {
       try {
-        const data = await getWeekDetail(decoded.uid, weekId);
+        const data = await getWeekDetail(decoded.uid, weekId, timeZone);
         return NextResponse.json(data);
       } catch (error) {
         console.error(`Failed to load weekly detail for ${weekId}`, error);
@@ -207,7 +209,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const history = await getWeeklyHistory(decoded.uid);
+    const history = await getWeeklyHistory(decoded.uid, timeZone);
     return NextResponse.json(history);
   } catch (error) {
     console.error("Failed to load weekly data", error);

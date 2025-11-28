@@ -1,12 +1,12 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
+import { DEFAULT_TIME_ZONE, getUserTimezone, startOfMonthInTZ, toUserZonedDate } from "@/lib/timezone";
 import { getWeekIdFromDate, getWeekStartISOFromWeekId, type WeeklySummary } from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
 
 const MONTH_PATTERN = /^([0-9]{4})-([0-9]{2})$/;
-const DEFAULT_TIME_ZONE = "Asia/Kuala_Lumpur";
 
 type MonthlySummary = {
   id: string;
@@ -49,8 +49,7 @@ function normalizeStringArray(value: unknown): string[] {
 }
 
 function toLocalDate(date = new Date(), timeZone = DEFAULT_TIME_ZONE) {
-  const localizedString = date.toLocaleString("en-US", { timeZone });
-  return new Date(localizedString);
+  return toUserZonedDate(date, timeZone);
 }
 
 function authenticate(request: NextRequest) {
@@ -85,11 +84,8 @@ function getMonthBoundaries(month: string, timeZone = DEFAULT_TIME_ZONE) {
     throw new Error("Invalid month format");
   }
 
-  const start = toLocalDate(new Date(Date.UTC(year, monthIndex, 1)), timeZone);
-  start.setHours(0, 0, 0, 0);
-
-  const nextMonthStart = toLocalDate(new Date(Date.UTC(year, monthIndex + 1, 1)), timeZone);
-  nextMonthStart.setHours(0, 0, 0, 0);
+  const start = startOfMonthInTZ(new Date(Date.UTC(year, monthIndex, 1)), timeZone);
+  const nextMonthStart = startOfMonthInTZ(new Date(Date.UTC(year, monthIndex + 1, 1)), timeZone);
 
   return { monthStart: start, nextMonthStart };
 }
@@ -111,11 +107,11 @@ function enumerateWeeksForMonth(monthStart: Date, nextMonthStart: Date, timeZone
   return weeks;
 }
 
-function sanitizeWeeklySummary(doc: FirebaseFirestore.QueryDocumentSnapshot): SanitizedWeeklySummary {
+function sanitizeWeeklySummary(doc: FirebaseFirestore.QueryDocumentSnapshot, timeZone: string): SanitizedWeeklySummary {
   const data = doc.data() as Partial<WeeklySummary> | undefined;
   const weekId = data?.weekId || doc.id;
   const storedWeekStart = toIsoString(data?.weekStart as unknown as FirebaseFirestore.Timestamp | string | undefined);
-  const weekStart = storedWeekStart || getWeekStartISOFromWeekId(weekId);
+  const weekStart = storedWeekStart || getWeekStartISOFromWeekId(weekId, timeZone);
 
   return {
     weekId,
@@ -170,14 +166,14 @@ function normalizeMonthlySummary(data: FirebaseFirestore.DocumentData | undefine
   };
 }
 
-async function fetchWeeklySummaries(uid: string) {
+async function fetchWeeklySummaries(uid: string, timeZone: string) {
   const snapshot = await adminDb
     .collection("weeklySummaries")
     .doc(uid)
     .collection("weeks")
     .get();
 
-  return snapshot.docs.map(sanitizeWeeklySummary);
+  return snapshot.docs.map((doc) => sanitizeWeeklySummary(doc, timeZone));
 }
 
 function getMonthlyWeeklyCoverage(
@@ -206,13 +202,14 @@ function getMonthlyWeeklyCoverage(
   return { weeksIncluded, weeksMissing, summaries };
 }
 
-async function prepareMonthlyContext(uid: string, month: string) {
-  const { monthStart, nextMonthStart } = getMonthBoundaries(month);
-  const weeklySummaries = await fetchWeeklySummaries(uid);
+async function prepareMonthlyContext(uid: string, month: string, timeZone: string) {
+  const { monthStart, nextMonthStart } = getMonthBoundaries(month, timeZone);
+  const weeklySummaries = await fetchWeeklySummaries(uid, timeZone);
   const { weeksIncluded, weeksMissing, summaries } = getMonthlyWeeklyCoverage(
     weeklySummaries,
     monthStart,
     nextMonthStart,
+    timeZone,
   );
 
   const monthlyDocRef = adminDb.collection("monthlySummaries").doc(uid).collection("months").doc(month);
@@ -229,6 +226,7 @@ async function prepareMonthlyContext(uid: string, month: string) {
     weeksMissing,
     monthlyDocRef,
     existingMonthlySummary,
+    timeZone,
   };
 }
 
@@ -322,9 +320,9 @@ async function handleCheck(
   month: string,
   context: Awaited<ReturnType<typeof prepareMonthlyContext>>,
 ): Promise<MonthlyStatusResponse> {
-  const { nextMonthStart, weeksIncluded, weeksMissing, existingMonthlySummary } = context;
+  const { nextMonthStart, weeksIncluded, weeksMissing, existingMonthlySummary, timeZone } = context;
 
-  if (!isMonthComplete(nextMonthStart)) {
+  if (!isMonthComplete(nextMonthStart, timeZone)) {
     return { status: "blocked", reason: "Month not fully completed", weeksIncluded, weeksMissing };
   }
 
@@ -344,9 +342,17 @@ async function handleGenerate(
   month: string,
   context: Awaited<ReturnType<typeof prepareMonthlyContext>>,
 ): Promise<MonthlyStatusResponse> {
-  const { nextMonthStart, weeksIncluded, weeksMissing, weeklySummaries, monthlyDocRef, existingMonthlySummary } = context;
+  const {
+    nextMonthStart,
+    weeksIncluded,
+    weeksMissing,
+    weeklySummaries,
+    monthlyDocRef,
+    existingMonthlySummary,
+    timeZone,
+  } = context;
 
-  if (!isMonthComplete(nextMonthStart)) {
+  if (!isMonthComplete(nextMonthStart, timeZone)) {
     return { status: "blocked", reason: "Month not fully completed", weeksIncluded, weeksMissing };
   }
 
@@ -391,6 +397,7 @@ export async function POST(request: NextRequest) {
     const body = (await request.json().catch(() => null)) as { month?: unknown; mode?: unknown } | null;
     const mode = typeof body?.mode === "string" ? body.mode : null;
     const month = typeof body?.month === "string" ? body.month : null;
+    const timeZone = await getUserTimezone(decoded.uid);
 
     if (!month || !MONTH_PATTERN.test(month)) {
       return NextResponse.json({ error: "Invalid month" }, { status: 400 });
@@ -403,7 +410,7 @@ export async function POST(request: NextRequest) {
     let context: Awaited<ReturnType<typeof prepareMonthlyContext>>;
 
     try {
-      context = await prepareMonthlyContext(decoded.uid, month);
+      context = await prepareMonthlyContext(decoded.uid, month, timeZone);
     } catch (prepError) {
       const message = prepError instanceof Error ? prepError.message : "";
       if (message.toLowerCase().includes("invalid month format")) {
