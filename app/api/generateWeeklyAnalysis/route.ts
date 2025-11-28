@@ -122,6 +122,7 @@ Guidelines:
 
 function buildWeeklySummaryObject(
   weekId: string,
+  weekStart: string,
   aiResult: {
     summary?: unknown;
     wins?: unknown;
@@ -136,6 +137,7 @@ function buildWeeklySummaryObject(
 
   return {
     weekId,
+    weekStart,
     summary: summaryText,
     wins,
     challenges,
@@ -216,7 +218,7 @@ export async function POST(request: NextRequest) {
     }
 
     const aiResult = await callWeeklyAnalysisModel(reflections);
-    const weeklySummary = buildWeeklySummaryObject(weekId, aiResult);
+    const weeklySummary = buildWeeklySummaryObject(weekId, start.toISOString(), aiResult);
 
     await adminDb
       .collection("weeklySummaries")

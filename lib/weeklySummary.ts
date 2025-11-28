@@ -1,5 +1,6 @@
 export interface WeeklySummary {
   weekId: string;
+  weekStart: string;
   summary: string;
   wins: string[];
   challenges: string[];
@@ -21,9 +22,18 @@ export interface WeeklyReflection {
   title?: string;
 }
 
-function toLocalDate(date = new Date(), timeZone = "Asia/Kuala_Lumpur") {
+export function toLocalDate(date = new Date(), timeZone = "Asia/Kuala_Lumpur") {
   const localizedString = date.toLocaleString("en-US", { timeZone });
   return new Date(localizedString);
+}
+
+export function getWeekStartDateFromWeekId(weekId: string, timeZone = "Asia/Kuala_Lumpur") {
+  const { start } = getWeekRangeFromWeekId(weekId, timeZone);
+  return start;
+}
+
+export function getWeekStartIsoFromWeekId(weekId: string, timeZone = "Asia/Kuala_Lumpur") {
+  return getWeekStartDateFromWeekId(weekId, timeZone).toISOString();
 }
 
 export function getWeekCompletionInfo(

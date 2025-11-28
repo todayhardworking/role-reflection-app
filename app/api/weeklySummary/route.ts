@@ -1,7 +1,12 @@
 import admin from "firebase-admin";
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { getCurrentWeekId, getWeekRangeFromWeekId, type WeeklySummary } from "@/lib/weeklySummary";
+import {
+  getCurrentWeekId,
+  getWeekRangeFromWeekId,
+  getWeekStartIsoFromWeekId,
+  type WeeklySummary,
+} from "@/lib/weeklySummary";
 
 export const dynamic = "force-dynamic";
 
@@ -48,8 +53,12 @@ async function authenticate(request: NextRequest) {
 }
 
 function sanitizeWeeklySummary(data: Partial<WeeklySummary> | undefined, fallbackWeekId: string): WeeklySummary {
+  const weekId = data?.weekId ?? fallbackWeekId;
+  const computedWeekStart = getWeekStartIsoFromWeekId(weekId);
+
   return {
-    weekId: data?.weekId ?? fallbackWeekId,
+    weekId,
+    weekStart: typeof data?.weekStart === "string" && data.weekStart ? data.weekStart : computedWeekStart,
     summary: data?.summary ?? "",
     wins: normalizeStringArray(data?.wins),
     challenges: normalizeStringArray(data?.challenges),
@@ -127,6 +136,7 @@ Guidelines:
 
 function buildWeeklySummaryObject(
   weekId: string,
+  weekStart: string,
   aiResult: {
     summary?: unknown;
     wins?: unknown;
@@ -141,6 +151,7 @@ function buildWeeklySummaryObject(
 
   return {
     weekId,
+    weekStart,
     summary: summaryText,
     wins,
     challenges,
@@ -205,7 +216,7 @@ export async function POST(request: NextRequest) {
   });
 
   const aiResult = await callWeeklySummaryModel(reflections);
-  const weeklySummary = buildWeeklySummaryObject(weekId, aiResult);
+  const weeklySummary = buildWeeklySummaryObject(weekId, weekStartISO, aiResult);
 
   await adminDb
     .collection("weeklySummaries")
