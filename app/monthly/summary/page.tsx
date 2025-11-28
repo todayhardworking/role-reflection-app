@@ -3,6 +3,7 @@
 import withAuth from "@/components/withAuth";
 import { useUser } from "@/context/UserContext";
 import { useEffect, useMemo, useState } from "react";
+import { toLocalDate } from "@/lib/weeklySummary";
 
 type WeeklyHistoryEntry = {
   weekId: string;
@@ -88,8 +89,10 @@ function MonthlySummaryPage() {
             weeks.map((week) => {
               const date = new Date(week.startISO);
               if (Number.isNaN(date.getTime())) return "";
-              const year = date.getUTCFullYear();
-              const monthIndex = date.getUTCMonth() + 1;
+
+              const localDate = toLocalDate(date);
+              const year = localDate.getFullYear();
+              const monthIndex = localDate.getMonth() + 1;
               return `${year}-${monthIndex.toString().padStart(2, "0")}`;
             }),
           ),
