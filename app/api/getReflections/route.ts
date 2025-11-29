@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { deriveTitleFromText } from "@/lib/reflections";
+import {
+  deriveTitleFromText,
+  resolveCanRegenerate,
+  type RoleSuggestion,
+} from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +30,13 @@ export async function GET(request: NextRequest) {
         uid: string;
         title?: string;
         rolesInvolved?: string[];
-        suggestions?: Record<string, unknown> | null;
+        suggestions?: Record<string, RoleSuggestion> | null;
         isPublic?: boolean;
         isAnonymous?: boolean;
         likes?: number;
         likedBy?: Record<string, boolean>;
         rateLimit?: Record<string, number>;
+        canRegenerate?: boolean;
       };
 
       const createdAtValue = data.createdAt;
@@ -45,6 +50,8 @@ export async function GET(request: NextRequest) {
         : "";
 
       const derivedTitle = deriveTitleFromText(data.text, data.title);
+      const suggestions = data.suggestions ?? null;
+      const canRegenerate = resolveCanRegenerate(data.canRegenerate, suggestions);
 
       return {
         id: doc.id,
@@ -53,7 +60,8 @@ export async function GET(request: NextRequest) {
         uid: data.uid,
         createdAt,
         rolesInvolved: data.rolesInvolved ?? [],
-        suggestions: (data.suggestions as Record<string, unknown> | null) ?? null,
+        suggestions,
+        canRegenerate,
         isPublic: data.isPublic ?? false,
         isAnonymous: data.isAnonymous ?? true,
         likes: typeof data.likes === "number" ? data.likes : 0,

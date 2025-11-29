@@ -23,6 +23,9 @@ export async function POST(request: Request) {
       likes: 0,
       likedBy: {},
       rateLimit: {},
+      suggestions: null,
+      rolesInvolved: [],
+      canRegenerate: true,
     });
 
     return NextResponse.json({ success: true, id: docRef.id });

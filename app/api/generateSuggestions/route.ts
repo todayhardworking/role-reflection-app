@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { type RoleSuggestion } from "@/lib/reflections";
+import { resolveCanRegenerate, type RoleSuggestion } from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -104,6 +104,22 @@ export async function POST(request: Request) {
       );
     }
 
+    const existingSuggestions = reflectionData?.suggestions as
+      | SuggestionsResponse
+      | null
+      | undefined;
+    const canRegenerate = resolveCanRegenerate(
+      reflectionData?.canRegenerate,
+      existingSuggestions,
+    );
+
+    if (!canRegenerate) {
+      return NextResponse.json(
+        { error: "Cannot regenerate suggestions without editing the reflection." },
+        { status: 400 },
+      );
+    }
+
     const prompt = buildPrompt(reflectionText, roles);
     const aiSuggestions = await callChatModel(prompt);
 
@@ -122,12 +138,24 @@ export async function POST(request: Request) {
       .filter(([, value]) => value.title !== "No suitable suggestions")
       .map(([role]) => role);
 
+    const updatedFields = {
+      suggestions,
+      rolesInvolved,
+      canRegenerate: false,
+      updatedAt: new Date().toISOString(),
+    };
+
     await adminDb
       .collection("reflections")
       .doc(reflectionId)
-      .set({ suggestions, rolesInvolved }, { merge: true });
+      .set(updatedFields, { merge: true });
 
-    return NextResponse.json({ suggestions });
+    return NextResponse.json({
+      reflection: {
+        id: reflectionId,
+        ...updatedFields,
+      },
+    });
   } catch (error) {
     console.error("Error generating suggestions:", error);
     return NextResponse.json(

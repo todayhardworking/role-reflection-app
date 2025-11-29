@@ -2,6 +2,12 @@ import { type RoleSuggestion } from "./reflections";
 
 export type Suggestions = Record<string, RoleSuggestion>;
 
+export interface SuggestionsResult {
+  suggestions: Suggestions;
+  rolesInvolved: string[];
+  canRegenerate: boolean;
+}
+
 async function handleResponse(response: Response) {
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
@@ -17,7 +23,7 @@ export async function generateSuggestions(
   uid: string,
   text: string,
   roles: string[]
-): Promise<Suggestions> {
+): Promise<SuggestionsResult> {
   const response = await fetch("/api/generateSuggestions", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -25,7 +31,7 @@ export async function generateSuggestions(
   });
 
   const data = await handleResponse(response);
-  return data.suggestions as Suggestions;
+  return data.reflection as SuggestionsResult;
 }
 
 export async function loadSuggestions(reflectionId: string): Promise<Suggestions | null> {
