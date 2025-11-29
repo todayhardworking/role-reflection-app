@@ -7,7 +7,10 @@ import {
   loadReflection,
   updateReflectionVisibility,
 } from "@/lib/reflections";
-import { generateSuggestions, loadSuggestions, type Suggestions } from "@/lib/suggestions";
+import {
+  generateSuggestions,
+  type Suggestions,
+} from "@/lib/suggestions";
 import { loadRoles } from "@/lib/roles";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -16,9 +19,10 @@ interface ReflectionDetailsState {
   title: string;
   text: string;
   createdAt: string;
-  rolesInvolved?: string[];
+  rolesInvolved: string[];
   isPublic: boolean;
   isAnonymous: boolean;
+  canRegenerate: boolean;
 }
 
 function ReflectionDetailsPage() {
@@ -48,10 +52,9 @@ function ReflectionDetailsPage() {
         setIsLoading(true);
         setError(null);
 
-        const [reflectionResponse, rolesResponse, suggestionsResponse] = await Promise.all([
+        const [reflectionResponse, rolesResponse] = await Promise.all([
           loadReflection(reflectionId, currentUser.uid),
           loadRoles(currentUser.uid),
-          loadSuggestions(reflectionId),
         ]);
 
         setReflection({
@@ -61,9 +64,10 @@ function ReflectionDetailsPage() {
           rolesInvolved: reflectionResponse.rolesInvolved,
           isPublic: reflectionResponse.isPublic,
           isAnonymous: reflectionResponse.isAnonymous,
+          canRegenerate: reflectionResponse.canRegenerate,
         });
         setRoles(rolesResponse);
-        setSuggestions(suggestionsResponse);
+        setSuggestions(reflectionResponse.suggestions);
       } catch (err) {
         console.error(err);
         setError("Unable to load reflection details. Please try again.");
@@ -89,10 +93,23 @@ function ReflectionDetailsPage() {
         roles
       );
 
-      setSuggestions(generated);
+      setSuggestions(generated.suggestions);
+      setReflection((prev) =>
+        prev
+          ? {
+              ...prev,
+              rolesInvolved: generated.rolesInvolved ?? prev.rolesInvolved,
+              canRegenerate: generated.canRegenerate,
+            }
+          : prev,
+      );
     } catch (err) {
       console.error(err);
-      setError("Failed to generate suggestions. Please try again.");
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Failed to generate suggestions. Please try again.",
+      );
     } finally {
       setIsGenerating(false);
     }
@@ -334,13 +351,26 @@ function ReflectionDetailsPage() {
           <button
             type="button"
             onClick={handleGenerateSuggestions}
-            disabled={isGenerating || roles.length === 0}
+            disabled={
+              isGenerating ||
+              roles.length === 0 ||
+              !reflection.canRegenerate
+            }
             className="rounded-md bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
           >
-            {isGenerating ? "Generating..." : "Generate AI Suggestions"}
+            {isGenerating
+              ? "Generating..."
+              : suggestions
+                ? "Regenerate Suggestions"
+                : "Generate AI Suggestions"}
           </button>
           {roles.length === 0 && (
             <span className="text-sm text-slate-500">Add roles to receive tailored suggestions.</span>
+          )}
+          {!reflection.canRegenerate && (
+            <span className="text-sm text-slate-500">
+              Edit your reflection before generating new suggestions.
+            </span>
           )}
         </div>
         {error && <p className="text-sm text-red-600">{error}</p>}

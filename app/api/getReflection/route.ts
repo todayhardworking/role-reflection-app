@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
-import { deriveTitleFromText, type RoleSuggestion } from "@/lib/reflections";
+import {
+  deriveTitleFromText,
+  resolveCanRegenerate,
+  type RoleSuggestion,
+} from "@/lib/reflections";
 
 export const dynamic = "force-dynamic";
 
@@ -32,6 +36,7 @@ export async function GET(request: NextRequest) {
       likes?: number;
       likedBy?: Record<string, boolean>;
       rateLimit?: Record<string, number>;
+      canRegenerate?: boolean;
     };
 
     if (uid && data?.uid && data.uid !== uid) {
@@ -47,13 +52,16 @@ export async function GET(request: NextRequest) {
 
     const derivedTitle = deriveTitleFromText(data?.text ?? "", data?.title);
 
+    const suggestions = data?.suggestions ?? null;
+    const canRegenerate = resolveCanRegenerate(data?.canRegenerate, suggestions);
+
     return NextResponse.json({
       reflection: {
         id: doc.id,
         text: data?.text ?? "",
         createdAt,
         uid: data?.uid ?? "",
-        suggestions: data?.suggestions ?? null,
+        suggestions,
         title: derivedTitle,
         rolesInvolved: data?.rolesInvolved ?? [],
         isPublic: data?.isPublic ?? false,
@@ -61,6 +69,7 @@ export async function GET(request: NextRequest) {
         likes: typeof data?.likes === "number" ? data.likes : 0,
         likedBy: data?.likedBy ?? {},
         rateLimit: data?.rateLimit ?? {},
+        canRegenerate,
       },
     });
   } catch (error) {

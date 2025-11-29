@@ -1,4 +1,3 @@
-import admin from "firebase-admin";
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebaseAdmin";
 import { deriveTitleFromText } from "@/lib/reflections";
@@ -34,8 +33,7 @@ export async function PUT(request: Request) {
       text: trimmedText,
       title: derivedTitle,
       updatedAt: new Date().toISOString(),
-      suggestions: admin.firestore.FieldValue.delete(),
-      rolesInvolved: admin.firestore.FieldValue.delete(),
+      canRegenerate: true,
     });
 
     return NextResponse.json({ success: true });

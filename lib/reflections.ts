@@ -9,8 +9,9 @@ export interface Reflection {
   text: string;
   createdAt: string;
   updatedAt?: string;
-  rolesInvolved?: string[];
-  suggestions?: Record<string, RoleSuggestion> | null;
+  rolesInvolved: string[];
+  suggestions: Record<string, RoleSuggestion> | null;
+  canRegenerate: boolean;
   isPublic: boolean;
   isAnonymous: boolean;
   likes: number;
@@ -48,6 +49,22 @@ export function deriveTitleFromText(text: string, providedTitle?: string) {
     .filter(Boolean)
     .slice(0, 2)
     .join(" ");
+}
+
+export function resolveCanRegenerate(
+  storedValue: unknown,
+  suggestions: Record<string, RoleSuggestion> | null | undefined,
+): boolean {
+  if (typeof storedValue === "boolean") {
+    return storedValue;
+  }
+
+  const hasSuggestions =
+    suggestions !== null &&
+    suggestions !== undefined &&
+    Object.keys(suggestions).length > 0;
+
+  return !hasSuggestions;
 }
 
 interface SaveReflectionResponse {
@@ -90,7 +107,15 @@ export async function loadReflections(uid: string): Promise<Reflection[]> {
   }
 
   const data = await response.json();
-  return data.reflections as Reflection[];
+  return (data.reflections as Reflection[]).map((reflection) => ({
+    ...reflection,
+    rolesInvolved: reflection.rolesInvolved ?? [],
+    suggestions: reflection.suggestions ?? null,
+    canRegenerate: resolveCanRegenerate(
+      (reflection as Partial<Reflection>).canRegenerate,
+      reflection.suggestions ?? null,
+    ),
+  }));
 }
 
 export async function loadReflection(reflectionId: string, uid?: string): Promise<Reflection> {
@@ -107,7 +132,17 @@ export async function loadReflection(reflectionId: string, uid?: string): Promis
   }
 
   const data = await response.json();
-  return data.reflection as Reflection;
+  const reflection = data.reflection as Reflection;
+
+  return {
+    ...reflection,
+    rolesInvolved: reflection.rolesInvolved ?? [],
+    suggestions: reflection.suggestions ?? null,
+    canRegenerate: resolveCanRegenerate(
+      (reflection as Partial<Reflection>).canRegenerate,
+      reflection.suggestions ?? null,
+    ),
+  };
 }
 
 export async function updateReflection(
