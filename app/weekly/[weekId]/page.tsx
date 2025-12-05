@@ -257,6 +257,7 @@ function WeeklyDetailPage({ params }: WeeklyDetailPageProps) {
                         </span>
                       ) : null}
                     </div>
+                    <p className="mt-2 text-sm font-semibold text-slate-900">{reflection.title || "Reflection"}</p>
                     <p className="mt-2 text-sm leading-relaxed text-slate-900 whitespace-pre-line">{reflection.text}</p>
                   </li>
                 ))}
