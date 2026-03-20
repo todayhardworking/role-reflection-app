@@ -1,6 +1,7 @@
 "use client";
 
 import withAuth from "@/components/withAuth";
+import SpeechToTextTextarea from "@/components/SpeechToTextTextarea";
 import { useUser } from "@/context/UserContext";
 import { saveReflection } from "@/lib/reflections";
 import Link from "next/link";
@@ -92,20 +93,16 @@ function NewReflectionPage() {
           placeholder="Title (optional — if left empty, the first 1–2 lines will be used)"
         />
       </div>
-      <div className="space-y-2">
-        <label htmlFor="reflection" className="block text-sm font-medium text-slate-700">
-          What stood out to you today?
-        </label>
-        <textarea
-          id="reflection"
-          name="reflection"
-          value={reflection}
-          onChange={(event) => setReflection(event.target.value)}
-          rows={5}
-          className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
-          placeholder="Write a quick note about your role, wins, or opportunities..."
-        />
-      </div>
+      <SpeechToTextTextarea
+        id="reflection"
+        name="reflection"
+        label="What stood out to you today?"
+        value={reflection}
+        onChange={setReflection}
+        rows={5}
+        className="w-full rounded-md border border-slate-300 px-3 py-2 text-slate-900 shadow-sm outline-none focus:border-slate-500 focus:ring-2 focus:ring-slate-200"
+        placeholder="Write a quick note about your role, wins, or opportunities..."
+      />
       {error && <p className="text-sm text-red-600">{error}</p>}
       <div className="flex items-center gap-3">
         <button
