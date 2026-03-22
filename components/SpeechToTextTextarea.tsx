@@ -2,49 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-type SpeechRecognitionAlternative = {
-  transcript: string;
-};
-
-type SpeechRecognitionResultLike = {
-  0: SpeechRecognitionAlternative;
-  isFinal: boolean;
-  length: number;
-};
-
-type SpeechRecognitionEventLike = Event & {
-  resultIndex: number;
-  results: ArrayLike<SpeechRecognitionResultLike>;
-};
-
-type SpeechRecognitionErrorEventLike = Event & {
-  error: string;
-  message?: string;
-};
-
-type SpeechRecognitionLike = EventTarget & {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  maxAlternatives: number;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: SpeechRecognitionErrorEventLike) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-  abort: () => void;
-  processLocally?: boolean;
-};
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
-
-declare global {
-  interface Window {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  }
-}
-
 interface SpeechToTextTextareaProps {
   id: string;
   name?: string;
@@ -57,7 +14,15 @@ interface SpeechToTextTextareaProps {
   className?: string;
 }
 
-const DEFAULT_MESSAGE = "Dictate locally when your browser supports on-device speech recognition.";
+const MIME_TYPES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/ogg;codecs=opus",
+];
+
+const DEFAULT_MESSAGE =
+  "Record your voice and this app will send the clip to the server for transcription.";
 
 export default function SpeechToTextTextarea({
   id,
@@ -70,111 +35,132 @@ export default function SpeechToTextTextarea({
   required = false,
   className,
 }: SpeechToTextTextareaProps) {
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const chunksRef = useRef<BlobPart[]>([]);
   const valueRef = useRef(value);
-  const onChangeRef = useRef(onChange);
+
   const [isSupported, setIsSupported] = useState(false);
-  const [isListening, setIsListening] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const [statusMessage, setStatusMessage] = useState(DEFAULT_MESSAGE);
-  const [recognitionKey, setRecognitionKey] = useState(0);
 
-  const SpeechRecognitionApi = useMemo<SpeechRecognitionConstructor | null>(() => {
-    if (typeof window === "undefined") return null;
-    return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null;
+  const mimeType = useMemo(() => {
+    if (typeof window === "undefined" || typeof MediaRecorder === "undefined") {
+      return "";
+    }
+
+    return MIME_TYPES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
   }, []);
-
-  useEffect(() => {
-    setIsSupported(Boolean(SpeechRecognitionApi));
-  }, [SpeechRecognitionApi]);
 
   useEffect(() => {
     valueRef.current = value;
   }, [value]);
 
   useEffect(() => {
-    onChangeRef.current = onChange;
-  }, [onChange]);
+    setIsSupported(
+      typeof window !== "undefined" &&
+        typeof navigator !== "undefined" &&
+        Boolean(navigator.mediaDevices?.getUserMedia) &&
+        typeof MediaRecorder !== "undefined",
+    );
+  }, []);
 
   useEffect(() => {
-    if (!SpeechRecognitionApi) {
-      return;
-    }
-
-    const recognition = new SpeechRecognitionApi();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = "en-US";
-    recognition.maxAlternatives = 1;
-
-    if ("processLocally" in recognition) {
-      recognition.processLocally = true;
-      setStatusMessage("On-device speech recognition is available in this browser.");
-    } else {
-      setStatusMessage(
-        "Speech recognition is available, but this browser may not guarantee fully on-device transcription.",
-      );
-    }
-
-    recognition.onresult = (event) => {
-      let nextTranscript = "";
-
-      for (let index = event.resultIndex; index < event.results.length; index += 1) {
-        nextTranscript += event.results[index][0]?.transcript ?? "";
-      }
-
-      const normalizedTranscript = nextTranscript.trim();
-      if (!normalizedTranscript) {
-        return;
-      }
-
-      onChangeRef.current(appendTranscript(valueRef.current, normalizedTranscript));
-      setStatusMessage("Transcription added. Continue speaking or stop the microphone.");
-    };
-
-    recognition.onerror = (event) => {
-      setStatusMessage(mapRecognitionError(event.error));
-      setIsListening(false);
-    };
-
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognitionRef.current = recognition;
-
     return () => {
-      recognition.abort();
-      recognitionRef.current = null;
+      mediaRecorderRef.current?.stop();
+      streamRef.current?.getTracks().forEach((track) => track.stop());
     };
-  }, [SpeechRecognitionApi, recognitionKey]);
+  }, []);
 
-  const toggleListening = async () => {
-    if (!recognitionRef.current) {
-      setStatusMessage("Speech recognition is not supported in this browser.");
+  const handleToggleRecording = async () => {
+    if (!isSupported) {
+      setStatusMessage("Audio recording is not supported in this browser.");
       return;
     }
 
-    if (isListening) {
-      recognitionRef.current.stop();
-      setStatusMessage("Microphone stopped.");
-      setIsListening(false);
+    if (isRecording) {
+      mediaRecorderRef.current?.stop();
+      setIsRecording(false);
+      setStatusMessage("Uploading your recording for transcription...");
       return;
     }
 
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
-      recognitionRef.current.start();
-      setIsListening(true);
-      setStatusMessage("Listening… speak naturally and your words will be added to the reflection.");
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(
+        stream,
+        mimeType ? { mimeType } : undefined,
+      );
+
+      streamRef.current = stream;
+      mediaRecorderRef.current = recorder;
+      chunksRef.current = [];
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      recorder.onerror = () => {
+        setStatusMessage("Recording failed. Please try again.");
+        setIsRecording(false);
+        cleanupMediaResources();
+      };
+
+      recorder.onstop = async () => {
+        try {
+          setIsTranscribing(true);
+          const audioBlob = new Blob(chunksRef.current, {
+            type: recorder.mimeType || mimeType || "audio/webm",
+          });
+
+          if (!audioBlob.size) {
+            setStatusMessage("No audio was captured. Please try again.");
+            return;
+          }
+
+          const transcript = await transcribeAudio(audioBlob, recorder.mimeType || mimeType);
+
+          if (!transcript.trim()) {
+            setStatusMessage("No transcript was returned. Please try speaking more clearly.");
+            return;
+          }
+
+          onChange(appendTranscript(valueRef.current, transcript.trim()));
+          setStatusMessage("Transcription added to your reflection.");
+          textareaRef.current?.focus();
+        } catch (error) {
+          console.error(error);
+          setStatusMessage(
+            error instanceof Error
+              ? error.message
+              : "Transcription failed. Please try again.",
+          );
+        } finally {
+          setIsTranscribing(false);
+          cleanupMediaResources();
+        }
+      };
+
+      recorder.start();
+      setIsRecording(true);
+      setStatusMessage("Recording... click again to stop and transcribe.");
       textareaRef.current?.focus();
     } catch (error) {
       console.error(error);
       setStatusMessage("Microphone access was denied or unavailable.");
-      setIsListening(false);
-      setRecognitionKey((current) => current + 1);
+      cleanupMediaResources();
     }
   };
+
+  const buttonLabel = isTranscribing
+    ? "Transcribing..."
+    : isRecording
+      ? "Stop recording"
+      : "Record voice note";
 
   return (
     <div className="space-y-2">
@@ -184,13 +170,13 @@ export default function SpeechToTextTextarea({
         </label>
         <button
           type="button"
-          onClick={toggleListening}
-          disabled={!isSupported}
-          aria-pressed={isListening}
+          onClick={handleToggleRecording}
+          disabled={!isSupported || isTranscribing}
+          aria-pressed={isRecording}
           className="inline-flex items-center gap-2 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
         >
-          <span aria-hidden="true">{isListening ? "⏹" : "🎙️"}</span>
-          {isListening ? "Stop voice input" : "Speak to text"}
+          <span aria-hidden="true">{isRecording ? "⏹" : "🎙️"}</span>
+          {buttonLabel}
         </button>
       </div>
       <textarea
@@ -207,6 +193,14 @@ export default function SpeechToTextTextarea({
       <p className="text-xs text-slate-500">{statusMessage}</p>
     </div>
   );
+
+  function cleanupMediaResources() {
+    mediaRecorderRef.current = null;
+    chunksRef.current = [];
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+    setIsRecording(false);
+  }
 }
 
 function appendTranscript(currentValue: string, transcript: string) {
@@ -218,19 +212,37 @@ function appendTranscript(currentValue: string, transcript: string) {
   return `${currentValue}${suffix}${transcript}`;
 }
 
-function mapRecognitionError(error: string) {
-  switch (error) {
-    case "audio-capture":
-      return "No microphone was found. Connect a microphone and try again.";
-    case "not-allowed":
-      return "Microphone access is blocked. Allow microphone access to use speech-to-text.";
-    case "service-not-allowed":
-      return "Speech recognition is blocked by the browser or system settings.";
-    case "network":
-      return "The browser reported a network dependency. For fully local STT, use a browser that supports on-device recognition.";
-    case "no-speech":
-      return "No speech was detected. Try again and speak a little closer to the microphone.";
+async function transcribeAudio(audioBlob: Blob, mimeType?: string) {
+  const extension = getFileExtension(mimeType);
+  const formData = new FormData();
+
+  formData.append("file", new File([audioBlob], `reflection-recording.${extension}`, {
+    type: mimeType || audioBlob.type || "audio/webm",
+  }));
+
+  const response = await fetch("/api/transcribeAudio", {
+    method: "POST",
+    body: formData,
+  });
+
+  const body = (await response.json()) as { text?: string; error?: string };
+
+  if (!response.ok) {
+    throw new Error(body.error || "Transcription failed. Please try again.");
+  }
+
+  return body.text || "";
+}
+
+function getFileExtension(mimeType?: string) {
+  switch (mimeType) {
+    case "audio/mp4":
+      return "mp4";
+    case "audio/ogg;codecs=opus":
+      return "ogg";
+    case "audio/webm":
+    case "audio/webm;codecs=opus":
     default:
-      return "Speech recognition stopped unexpectedly. Please try again.";
+      return "webm";
   }
 }
