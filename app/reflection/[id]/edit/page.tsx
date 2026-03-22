@@ -1,5 +1,6 @@
 "use client";
 
+import SpeechToTextTextarea from "@/components/SpeechToTextTextarea";
 import { useUser } from "@/context/UserContext";
 import { loadReflection, updateReflection } from "@/lib/reflections";
 import { useParams, useRouter } from "next/navigation";
@@ -91,19 +92,15 @@ export default function EditReflectionPage() {
             placeholder="Title (optional — if left empty, the first 1–2 lines will be used)"
           />
         </div>
-        <div className="space-y-2">
-          <label htmlFor="reflection" className="text-sm font-semibold text-slate-800">
-            Reflection Text
-          </label>
-          <textarea
-            id="reflection"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            required
-            rows={8}
-            className="w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
-          />
-        </div>
+        <SpeechToTextTextarea
+          id="reflection"
+          label="Reflection Text"
+          value={text}
+          onChange={setText}
+          required
+          rows={8}
+          className="w-full rounded-md border border-slate-200 bg-slate-50 p-3 text-slate-900 shadow-sm focus:border-slate-400 focus:outline-none"
+        />
 
         {error && <p className="text-sm text-red-600">{error}</p>}
 
